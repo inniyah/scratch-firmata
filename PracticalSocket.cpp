@@ -19,6 +19,9 @@
 
 #include "PracticalSocket.h"
 
+#include <cstdlib>
+#include <cstring>
+
 #ifdef WIN32
   #include <winsock.h>         // For socket(), connect(), send(), and recv()
   typedef int socklen_t;

@@ -1,5 +1,5 @@
-#ifndef __firmata_test_H__
-#define __firmata_test_H__
+#ifndef SCRATCH_FIRMATA_H_EA7D067C_B4DB_11E2_B5FA_001485C48853
+#define SCRATCH_FIRMATA_H_EA7D067C_B4DB_11E2_B5FA_001485C48853
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
 #pragma interface "firmata_test.h"
@@ -86,4 +86,4 @@ public:
 	virtual int OnExit();
 };
 
-#endif
+#endif // SCRATCH_FIRMATA_H_EA7D067C_B4DB_11E2_B5FA_001485C48853

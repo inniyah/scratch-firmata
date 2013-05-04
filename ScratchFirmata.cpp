@@ -21,8 +21,8 @@
 #endif
 
 #include "wx/wxprec.h"
-#include "firmata_test.h"
-#include "serial.h"
+#include "ScratchFirmata.h"
+#include "Serial.h"
 
 
 //------------------------------------------------------------------------------

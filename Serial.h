@@ -1,5 +1,5 @@
-#ifndef __serial_h__
-#define __serial_h__
+#ifndef SERIAL_H_D3821E6C_B4DB_11E2_A4B1_001485C48853
+#define SERIAL_H_D3821E6C_B4DB_11E2_A4B1_001485C48853
 
 #include <wx/wx.h>
 #include <stdint.h>
@@ -48,4 +48,4 @@ private:
 #endif
 };
 
-#endif // __serial_h__
+#endif // SERIAL_H_D3821E6C_B4DB_11E2_A4B1_001485C48853

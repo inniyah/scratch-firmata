@@ -1,8 +1,8 @@
-PROGRAM=firmata_test
+PROGRAM=ScratchFirmata
 
 all: $(PROGRAM)
 
-OBJS = serial.o firmata_test.o
+OBJS = Serial.o ScratchFirmata.o
 
 PKG_CONFIG=
 PKG_CONFIG_CFLAGS=`wx-config --cflags`

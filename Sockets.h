@@ -17,8 +17,8 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __PRACTICALSOCKET_INCLUDED__
-#define __PRACTICALSOCKET_INCLUDED__
+#ifndef SOCKETS_H_CFB0A6B6_B4E8_11E2_A687_001485C48853
+#define SOCKETS_H_CFB0A6B6_B4E8_11E2_A687_001485C48853
 
 #include <string>            // For string
 #include <exception>         // For exception class
@@ -336,4 +336,5 @@ private:
   void setBroadcast();
 };
 
-#endif
+#endif // SOCKETS_H_CFB0A6B6_B4E8_11E2_A687_001485C48853
+

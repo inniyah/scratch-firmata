@@ -1,0 +1,5 @@
+ScratchFirmata
+*.o
+*.a
+*.so
+*~

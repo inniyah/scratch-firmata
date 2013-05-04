@@ -27,13 +27,13 @@
 const int ID_MENU = 10000;
 
 //----------------------------------------------------------------------------
-// MyFrame
+// ScratchFirmataFrame
 //----------------------------------------------------------------------------
 
-class MyFrame: public wxFrame
+class ScratchFirmataFrame: public wxFrame
 {
 public:
-    MyFrame( wxWindow *parent, wxWindowID id, const wxString &title,
+    ScratchFirmataFrame( wxWindow *parent, wxWindowID id, const wxString &title,
         const wxPoint& pos = wxDefaultPosition,
         const wxSize& size = wxDefaultSize,
         long style = wxDEFAULT_FRAME_STYLE );
@@ -64,10 +64,10 @@ private:
 };
 
 
-class MyMenu: public wxMenu
+class ScratchFirmataMenu: public wxMenu
 {
 public:
-	MyMenu(const wxString& title = _(""), long style = 0);
+	ScratchFirmataMenu(const wxString& title = _(""), long style = 0);
 	void OnShowPortList(wxMenuEvent &event);
 	void OnHighlight(wxMenuEvent &event);
 };
@@ -75,13 +75,13 @@ public:
 
 
 //----------------------------------------------------------------------------
-// MyApp
+// ScratchFirmataApp
 //----------------------------------------------------------------------------
 
-class MyApp: public wxApp
+class ScratchFirmataApp: public wxApp
 {
 public:
-	MyApp();
+	ScratchFirmataApp();
 	virtual bool OnInit();
 	virtual int OnExit();
 };

@@ -26,7 +26,7 @@
 
 
 //------------------------------------------------------------------------------
-// MyFrame
+// ScratchFirmataFrame
 //------------------------------------------------------------------------------
 
 Serial port;
@@ -62,21 +62,21 @@ wxMenu *port_menu;
 #define REPORT_FIRMWARE         0x79 // report name and version of the firmware
 
 
-BEGIN_EVENT_TABLE(MyFrame,wxFrame)
-	EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
-	EVT_MENU(wxID_EXIT, MyFrame::OnQuit)
-	EVT_MENU_RANGE(9000, 9999, MyFrame::OnPort)
-	EVT_CHOICE(-1, MyFrame::OnModeChange)
-	EVT_IDLE(MyFrame::OnIdle)
-	EVT_TOGGLEBUTTON(-1, MyFrame::OnToggleButton)
-	EVT_SCROLL_THUMBTRACK(MyFrame::OnSliderDrag)
-	EVT_MENU_OPEN(MyMenu::OnShowPortList)
-	EVT_MENU_HIGHLIGHT(-1, MyMenu::OnHighlight)
-	EVT_CLOSE(MyFrame::OnCloseWindow)
-	//EVT_SIZE(MyFrame::OnSize)
+BEGIN_EVENT_TABLE(ScratchFirmataFrame,wxFrame)
+	EVT_MENU(wxID_ABOUT, ScratchFirmataFrame::OnAbout)
+	EVT_MENU(wxID_EXIT, ScratchFirmataFrame::OnQuit)
+	EVT_MENU_RANGE(9000, 9999, ScratchFirmataFrame::OnPort)
+	EVT_CHOICE(-1, ScratchFirmataFrame::OnModeChange)
+	EVT_IDLE(ScratchFirmataFrame::OnIdle)
+	EVT_TOGGLEBUTTON(-1, ScratchFirmataFrame::OnToggleButton)
+	EVT_SCROLL_THUMBTRACK(ScratchFirmataFrame::OnSliderDrag)
+	EVT_MENU_OPEN(ScratchFirmataMenu::OnShowPortList)
+	EVT_MENU_HIGHLIGHT(-1, ScratchFirmataMenu::OnHighlight)
+	EVT_CLOSE(ScratchFirmataFrame::OnCloseWindow)
+	//EVT_SIZE(ScratchFirmataFrame::OnSize)
 END_EVENT_TABLE()
 
-MyFrame::MyFrame( wxWindow *parent, wxWindowID id, const wxString &title,
+ScratchFirmataFrame::ScratchFirmataFrame( wxWindow *parent, wxWindowID id, const wxString &title,
     const wxPoint &position, const wxSize& size, long style ) :
     wxFrame( parent, id, title, position, size, style )
 {
@@ -111,7 +111,7 @@ MyFrame::MyFrame( wxWindow *parent, wxWindowID id, const wxString &title,
 #endif
 }
 
-void MyFrame::init_data(void)
+void ScratchFirmataFrame::init_data(void)
 {
 	grid->Clear(true);
 	grid->SetRows(0);
@@ -127,14 +127,14 @@ void MyFrame::init_data(void)
 	new_size();
 }
 
-void MyFrame::new_size(void)
+void ScratchFirmataFrame::new_size(void)
 {
 	grid->Layout();
 	scroll->FitInside();
 	Refresh();
 }
 
-void MyFrame::add_item_to_grid(int row, int col, wxWindow *item)
+void ScratchFirmataFrame::add_item_to_grid(int row, int col, wxWindow *item)
 {
 	int num_col = grid->GetCols();
 	int num_row = grid->GetRows();
@@ -169,7 +169,7 @@ void MyFrame::add_item_to_grid(int row, int col, wxWindow *item)
 	}
 }
 
-void MyFrame::add_pin(int pin)
+void ScratchFirmataFrame::add_pin(int pin)
 {
 	wxString *str = new wxString();
 	str->Printf(_("Pin %d"), pin);
@@ -199,7 +199,7 @@ void MyFrame::add_pin(int pin)
 	OnModeChange(cmd);
 }
 
-void MyFrame::UpdateStatus(void)
+void ScratchFirmataFrame::UpdateStatus(void)
 {
 	wxString status;
 	if (port.Is_open()) {
@@ -213,7 +213,7 @@ void MyFrame::UpdateStatus(void)
 }	
 
 
-void MyFrame::OnModeChange(wxCommandEvent &event)
+void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 {
 	int id = event.GetId();
 	int pin = id - 8000;
@@ -272,7 +272,7 @@ void MyFrame::OnModeChange(wxCommandEvent &event)
 	new_size();
 }
 
-void MyFrame::OnToggleButton(wxCommandEvent &event)
+void ScratchFirmataFrame::OnToggleButton(wxCommandEvent &event)
 {
 	int id = event.GetId();
 	int pin = id - 7000;
@@ -301,7 +301,7 @@ void MyFrame::OnToggleButton(wxCommandEvent &event)
 	UpdateStatus();
 }
 
-void MyFrame::OnSliderDrag(wxScrollEvent &event)
+void ScratchFirmataFrame::OnSliderDrag(wxScrollEvent &event)
 {
 	int id = event.GetId();
 	int pin = id - 6000;
@@ -336,7 +336,7 @@ void MyFrame::OnSliderDrag(wxScrollEvent &event)
 
 
 
-void MyFrame::OnPort(wxCommandEvent &event)
+void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 {
 	int id = event.GetId();
 	wxString name = port_menu->FindItem(id)->GetLabel();
@@ -392,7 +392,7 @@ void MyFrame::OnPort(wxCommandEvent &event)
 	UpdateStatus();
 }
 
-void MyFrame::OnIdle(wxIdleEvent &event)
+void ScratchFirmataFrame::OnIdle(wxIdleEvent &event)
 {
 	uint8_t buf[1024];
 	int r;
@@ -421,7 +421,7 @@ void MyFrame::OnIdle(wxIdleEvent &event)
 	event.RequestMore(true);
 }
 
-void MyFrame::Parse(const uint8_t *buf, int len)
+void ScratchFirmataFrame::Parse(const uint8_t *buf, int len)
 {
 	const uint8_t *p, *end;
 
@@ -454,7 +454,7 @@ void MyFrame::Parse(const uint8_t *buf, int len)
 	}
 }
 
-void MyFrame::DoMessage(void)
+void ScratchFirmataFrame::DoMessage(void)
 {
 	uint8_t cmd = (parse_buf[0] & 0xF0);
 
@@ -589,25 +589,25 @@ void MyFrame::DoMessage(void)
 
 
 
-void MyFrame::OnAbout( wxCommandEvent &event )
+void ScratchFirmataFrame::OnAbout( wxCommandEvent &event )
 {
     wxMessageDialog dialog( this, _("Firmata Test 1.0\nCopyright Paul Stoffregen"),
         wxT("About Firmata Test"), wxOK|wxICON_INFORMATION );
     dialog.ShowModal();
 }
 
-void MyFrame::OnQuit( wxCommandEvent &event )
+void ScratchFirmataFrame::OnQuit( wxCommandEvent &event )
 {
      Close( true );
 }
 
-void MyFrame::OnCloseWindow( wxCloseEvent &event )
+void ScratchFirmataFrame::OnCloseWindow( wxCloseEvent &event )
 {
     // if ! saved changes -> return
     Destroy();
 }
 
-void MyFrame::OnSize( wxSizeEvent &event )
+void ScratchFirmataFrame::OnSize( wxSizeEvent &event )
 {
     event.Skip( true );
 }
@@ -616,11 +616,11 @@ void MyFrame::OnSize( wxSizeEvent &event )
 // Port Menu
 //------------------------------------------------------------------------------
 
-MyMenu::MyMenu(const wxString& title, long style) : wxMenu(title, style)
+ScratchFirmataMenu::ScratchFirmataMenu(const wxString& title, long style) : wxMenu(title, style)
 {
 }
 	
-void MyMenu::OnShowPortList(wxMenuEvent &event)
+void ScratchFirmataMenu::OnShowPortList(wxMenuEvent &event)
 {
 	wxMenu *menu;
 	wxMenuItem *item;
@@ -649,30 +649,30 @@ void MyMenu::OnShowPortList(wxMenuEvent &event)
 	if (!any) menu->Check(9000, true);
 }
 
-void MyMenu::OnHighlight(wxMenuEvent &event)
+void ScratchFirmataMenu::OnHighlight(wxMenuEvent &event)
 {
 }
 
 
 //------------------------------------------------------------------------------
-// MyApp
+// ScratchFirmataApp
 //------------------------------------------------------------------------------
 
-IMPLEMENT_APP(MyApp)
+IMPLEMENT_APP(ScratchFirmataApp)
 
-MyApp::MyApp()
+ScratchFirmataApp::ScratchFirmataApp()
 {
 }
 
-bool MyApp::OnInit()
+bool ScratchFirmataApp::OnInit()
 {
-    MyFrame *frame = new MyFrame( NULL, -1, _("Firmata Test"), wxPoint(20,20), wxSize(400,640) );
+    ScratchFirmataFrame *frame = new ScratchFirmataFrame( NULL, -1, _("Scratch Firmata Connector"), wxPoint(20,20), wxSize(400,640) );
     frame->Show( true );
     
     return true;
 }
 
-int MyApp::OnExit()
+int ScratchFirmataApp::OnExit()
 {
     return 0;
 }

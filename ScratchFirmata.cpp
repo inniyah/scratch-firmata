@@ -23,23 +23,27 @@
 #include "wx/wxprec.h"
 #include "ScratchFirmata.h"
 #include "Serial.h"
-
+#include "ScratchConnection.h"
 
 //------------------------------------------------------------------------------
 // ScratchFirmataFrame
 //------------------------------------------------------------------------------
 
 Serial port;
+
 typedef struct {
 	uint8_t mode;
 	uint8_t analog_channel;
 	uint64_t supported_modes;
 	uint32_t value;
 } pin_t;
+
 pin_t pin_info[128];
 wxString firmata_name;
 unsigned int rx_count, tx_count;
 wxMenu *port_menu;
+
+ScratchConnection scratch_conn;
 
 #define MODE_INPUT    0x00
 #define MODE_OUTPUT   0x01
@@ -396,6 +400,8 @@ void ScratchFirmataFrame::OnIdle(wxIdleEvent &event)
 {
 	uint8_t buf[1024];
 	int r;
+
+	scratch_conn.ReceiveRaw();
 
 	//printf("Idle event\n");
 	r = port.Input_wait(40);

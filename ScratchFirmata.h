@@ -9,7 +9,6 @@
 #include <wx/tglbtn.h>
 #include <stdint.h>
 
-
 //#define LOG_MSG_TO_STDOUT
 //#define LOG_MSG_TO_WINDOW
 
@@ -30,19 +29,20 @@ const int ID_MENU = 10000;
 // ScratchFirmataFrame
 //----------------------------------------------------------------------------
 
-class ScratchFirmataFrame: public wxFrame
-{
+class ScratchFirmataFrame: public wxFrame {
 public:
-    ScratchFirmataFrame( wxWindow *parent, wxWindowID id, const wxString &title,
-        const wxPoint& pos = wxDefaultPosition,
-        const wxSize& size = wxDefaultSize,
-        long style = wxDEFAULT_FRAME_STYLE );
+	ScratchFirmataFrame( wxWindow *parent, wxWindowID id, const wxString &title,
+		const wxPoint& pos = wxDefaultPosition,
+		const wxSize& size = wxDefaultSize,
+		long style = wxDEFAULT_FRAME_STYLE );
+
 private:
 	wxFlexGridSizer *grid;
 	wxScrolledWindow *scroll;
 	int parse_count;
 	int parse_command_len;
 	uint8_t parse_buf[4096];
+
 private:
 	void init_data(void);
 	void new_size(void);
@@ -64,22 +64,18 @@ private:
 };
 
 
-class ScratchFirmataMenu: public wxMenu
-{
+class ScratchFirmataMenu: public wxMenu {
 public:
 	ScratchFirmataMenu(const wxString& title = _(""), long style = 0);
 	void OnShowPortList(wxMenuEvent &event);
 	void OnHighlight(wxMenuEvent &event);
 };
 
-
-
 //----------------------------------------------------------------------------
 // ScratchFirmataApp
 //----------------------------------------------------------------------------
 
-class ScratchFirmataApp: public wxApp
-{
+class ScratchFirmataApp: public wxApp {
 public:
 	ScratchFirmataApp();
 	virtual bool OnInit();

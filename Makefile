@@ -2,7 +2,7 @@ PROGRAM=ScratchFirmata
 
 all: $(PROGRAM)
 
-OBJS = Serial.o Sockets.o ScratchFirmata.o
+OBJS = Serial.o PerformanceTimer.o ScratchConnection.o ScratchFirmata.o
 
 PKG_CONFIG=
 PKG_CONFIG_CFLAGS=`wx-config --cflags`

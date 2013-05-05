@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <errno.h>
+#include <strings.h>
 
 const char * ScratchConnection::ScratchHost = "127.0.0.1";
 const unsigned short ScratchConnection::ScratchPort = 42001;
@@ -82,10 +83,10 @@ void ScratchConnection::ReceiveRaw() {
 	int bytes_read = ::recv(sockfd, buffer, sizeof(buffer), MSG_DONTWAIT);
 	if (bytes_read < 0) {
 		if (errno != EAGAIN && errno != EWOULDBLOCK) { // Error
-			std::cerr << "Error " << errno << " while receiving the message: "<< strerror(errno) << std::endl;
+			std::cerr << "Error " << errno << " while receiving message from Scratch: "<< strerror(errno) << std::endl;
 			Disconnect();
 			return;
-		} else { // Not data available at the moment
+		} else { // No data available at the moment
 			return;
 		}
 	} else if (bytes_read == 0) { // EOF
@@ -113,6 +114,58 @@ void ScratchConnection::ProcessScratchMessage(size_t size, const char * data) {
 	std::cerr << "Message of length " << size << " received: ";
 	std::cerr.write(data, size);
 	std::cerr << std::endl;
+
+	static const unsigned int MaxParams = 4;
+
+	const char * param[MaxParams];
+	unsigned int param_size[MaxParams];
+	unsigned int param_num = 0;
+
+	bool in_param = false;
+	bool in_quotes = false;
+	const char * data_end = data + size;
+	for (const char * pnt = data; pnt < data_end; pnt++) {
+		if (param_num >= MaxParams) break; // Prevent a buffer overflow
+
+		if (in_param) { // Inside a parameter
+			if (in_quotes) { // In quotes
+				if (*pnt == '"') {
+					if (pnt + 1 == data_end || *(pnt+1) != '"') { // Double quotes are used to represent quotes inside a quoted parameter
+						param_size[param_num] = pnt - param[param_num]; // Parameter is finished
+						param_num++;
+						in_param = false;
+					}
+				}
+			} else { // Not in quotes
+				if (*pnt == ' ') {
+					param_size[param_num] = pnt - param[param_num]; // Parameter is finished
+					param_num++;
+					in_param = false;
+				}
+			}
+		} else { // Not inside a parameter
+			if (*pnt == ' ') continue;
+			if (*pnt == '"') { in_quotes = true; pnt++; } // Skip the quotes
+			in_param = true;
+			param[param_num] = pnt;
+		}
+	}
+	if (in_param) {
+		param_size[param_num] = data_end - param[param_num]; // Parameter is finished
+		param_num++;
+		in_param = false;
+	}
+
+	for (unsigned int i = 0; i < param_num; i++) {
+		std::cerr << "  Parameter " << i << ": ";
+		std::cerr.write(param[i], param_size[i]);
+		std::cerr << std::endl;
+	}
+
+	if (strncasecmp(param[0], "sensor-update", param_size[0]) == 0) {
+	} else if (strncasecmp(param[0], "broadcast", param_size[0]) == 0) {
+	} else { // Unknown message
+	}
 }
 
 

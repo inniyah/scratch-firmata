@@ -23,6 +23,7 @@ public:
 	void Disconnect();
 	void SendRaw(size_t size, const char * data);
 	void ReceiveRaw();
+	void ProcessScratchMessage(size_t size, const char * data);
 
 private:
 	int sockfd;

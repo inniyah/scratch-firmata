@@ -103,10 +103,17 @@ void ScratchConnection::ReceiveRaw() {
 			((size_t)(buffer_pos[2]) << 8) +
 			((size_t)(buffer_pos[3]) << 0);
 		buffer_pos += 4; bytes_left -= 4;
-		if (size > bytes_left) return;
-		std::cerr << "Message of length " << size << " received: ";
-		std::cerr.write(buffer_pos, size);
-		std::cerr << std::endl;
+		if (size > (size_t)bytes_left) return;
+		ProcessScratchMessage((size_t)size, buffer_pos);
 		buffer_pos += size; bytes_left -= size;
 	}
 }
+
+void ScratchConnection::ProcessScratchMessage(size_t size, const char * data) {
+	std::cerr << "Message of length " << size << " received: ";
+	std::cerr.write(data, size);
+	std::cerr << std::endl;
+}
+
+
+

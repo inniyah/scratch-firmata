@@ -151,19 +151,26 @@ public:
    *   calling send()
    *   @param buffer buffer to be written
    *   @param bufferLen number of bytes from buffer to be written
-   *   @exception SocketException thrown if unable to send data
+   *   @return number of bytes sent, 0 for EOF, and -1 for error or if it would block when in not blocking mode
+   *   @exception SocketException thrown if unable to send data, unless it is due not blocking
    */
-  void send(const void *buffer, int bufferLen) throw(SocketException);
+  int send(const void *buffer, int bufferLen, bool non_blocking = false) throw(SocketException);
 
   /**
    *   Read into the given buffer up to bufferLen bytes data from this
    *   socket.  Call connect() before calling recv()
    *   @param buffer buffer to receive the data
    *   @param bufferLen maximum number of bytes to read into buffer
-   *   @return number of bytes read, 0 for EOF, and -1 for error
-   *   @exception SocketException thrown if unable to receive data
+   *   @return number of bytes read, 0 for EOF, and -1 for error or if it would block when in not blocking mode
+   *   @exception SocketException thrown if unable to receive data, unless it is due not blocking
    */
-  int recv(void *buffer, int bufferLen) throw(SocketException);
+  int recv(void *buffer, int bufferLen, bool non_blocking = false) throw(SocketException);
+
+  /**
+   *   Check if the connection is up
+   *   @return true if the connection is up and running, false otherwise
+   */
+  bool isConnected();
 
   /**
    *   Get the foreign address.  Call connect() before calling recv()

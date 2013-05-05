@@ -196,25 +196,36 @@ void CommunicatingSocket::connect(const string &foreignAddress,
   }
 }
 
-void CommunicatingSocket::send(const void *buffer, int bufferLen) 
-    throw(SocketException) {
-  if (::send(sockDesc, (raw_type *) buffer, bufferLen, 0) < 0) {
-    throw SocketException("Send failed (send())", true);
-  }
+int CommunicatingSocket::send(const void *buffer, int bufferLen, bool non_blocking) throw(SocketException) {
+	int flags = ( non_blocking ? MSG_DONTWAIT : 0 );
+	int rtn = ::send(sockDesc, (raw_type *) buffer, bufferLen, flags);
+	if (rtn < 0) {
+		if (rtn != EAGAIN && rtn != EWOULDBLOCK) {
+			throw SocketException("Send failed (send())", true);
+		}
+	}
+	return rtn;
 }
 
-int CommunicatingSocket::recv(void *buffer, int bufferLen) 
-    throw(SocketException) {
-  int rtn;
-  if ((rtn = ::recv(sockDesc, (raw_type *) buffer, bufferLen, 0)) < 0) {
-    throw SocketException("Received failed (recv())", true);
-  }
-
-  return rtn;
+int CommunicatingSocket::recv(void *buffer, int bufferLen, bool non_blocking) throw(SocketException) {
+	int flags = ( non_blocking ? MSG_DONTWAIT : 0 );
+	int rtn = ::recv(sockDesc, (raw_type *) buffer, bufferLen, flags);
+	if (rtn < 0) {
+		if (rtn != EAGAIN && rtn != EWOULDBLOCK) {
+			throw SocketException("Received failed (recv())", true);
+		}
+	}
+	return rtn;
 }
 
-string CommunicatingSocket::getForeignAddress() 
-    throw(SocketException) {
+bool CommunicatingSocket::isConnected() {
+	int error = 0;
+	socklen_t len = sizeof (error);
+	int retval = getsockopt (sockDesc, SOL_SOCKET, SO_ERROR, &error, &len);
+	return (retval == 0);
+}
+
+string CommunicatingSocket::getForeignAddress() throw(SocketException) {
   sockaddr_in addr;
   unsigned int addr_len = sizeof(addr);
 

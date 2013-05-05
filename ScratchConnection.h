@@ -10,6 +10,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "IScratchListener.h"
+
 class ScratchConnection {
 public:
 	ScratchConnection() : sockfd(-1) {
@@ -21,9 +23,15 @@ public:
 
 	bool Connect();
 	void Disconnect();
+
+	inline void ReceiveScratchMessages(IScratchListener & listener) {
+		ReceiveRaw(listener);
+	}
+
+private:
 	void SendRaw(size_t size, const char * data);
-	void ReceiveRaw();
-	void ProcessScratchMessage(size_t size, const char * data);
+	void ReceiveRaw(IScratchListener & listener);
+	void ProcessScratchMessage(IScratchListener & listener, size_t size, const char * data);
 
 private:
 	int sockfd;

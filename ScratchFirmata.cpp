@@ -401,7 +401,7 @@ void ScratchFirmataFrame::OnIdle(wxIdleEvent &event)
 	uint8_t buf[1024];
 	int r;
 
-	scratch_conn.ReceiveRaw();
+	scratch_conn.ReceiveScratchMessages(*this);
 
 	//printf("Idle event\n");
 	r = port.Input_wait(40);
@@ -592,9 +592,6 @@ void ScratchFirmataFrame::DoMessage(void)
 	}
 }
 
-
-
-
 void ScratchFirmataFrame::OnAbout( wxCommandEvent &event )
 {
     wxMessageDialog dialog( this, _("Firmata Test 1.0\nCopyright Paul Stoffregen"),
@@ -618,6 +615,19 @@ void ScratchFirmataFrame::OnSize( wxSizeEvent &event )
     event.Skip( true );
 }
 
+void ScratchFirmataFrame::ReceiveScratchMessage(unsigned int num_params, const char * param[], unsigned int param_size[]) {
+	for (unsigned int i = 0; i < num_params; i++) {
+		std::cerr << "  Parameter " << i << ": ";
+		std::cerr.write(param[i], param_size[i]);
+		std::cerr << std::endl;
+	}
+
+	if (strncasecmp(param[0], "sensor-update", param_size[0]) == 0) {
+	} else if (strncasecmp(param[0], "broadcast", param_size[0]) == 0) {
+	} else { // Unknown message
+	}
+}
+
 //------------------------------------------------------------------------------
 // Port Menu
 //------------------------------------------------------------------------------
@@ -625,7 +635,7 @@ void ScratchFirmataFrame::OnSize( wxSizeEvent &event )
 ScratchFirmataMenu::ScratchFirmataMenu(const wxString& title, long style) : wxMenu(title, style)
 {
 }
-	
+
 void ScratchFirmataMenu::OnShowPortList(wxMenuEvent &event)
 {
 	wxMenu *menu;
@@ -658,7 +668,6 @@ void ScratchFirmataMenu::OnShowPortList(wxMenuEvent &event)
 void ScratchFirmataMenu::OnHighlight(wxMenuEvent &event)
 {
 }
-
 
 //------------------------------------------------------------------------------
 // ScratchFirmataApp

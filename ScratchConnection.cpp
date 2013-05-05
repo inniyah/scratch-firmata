@@ -76,7 +76,7 @@ void ScratchConnection::SendRaw(size_t size, const char * data) {
 	}
 }
 
-void ScratchConnection::ReceiveRaw() {
+void ScratchConnection::ReceiveRaw(IScratchListener & listener) {
 	if (sockfd < 0) if (!Connect()) return;
 
 	char buffer[BufferSize+1]; buffer[BufferSize] = '\0';
@@ -105,12 +105,12 @@ void ScratchConnection::ReceiveRaw() {
 			((size_t)(buffer_pos[3]) << 0);
 		buffer_pos += 4; bytes_left -= 4;
 		if (size > (size_t)bytes_left) return;
-		ProcessScratchMessage((size_t)size, buffer_pos);
+		ProcessScratchMessage(listener, (size_t)size, buffer_pos);
 		buffer_pos += size; bytes_left -= size;
 	}
 }
 
-void ScratchConnection::ProcessScratchMessage(size_t size, const char * data) {
+void ScratchConnection::ProcessScratchMessage(IScratchListener & listener, size_t size, const char * data) {
 	std::cerr << "Message of length " << size << " received: ";
 	std::cerr.write(data, size);
 	std::cerr << std::endl;
@@ -156,16 +156,7 @@ void ScratchConnection::ProcessScratchMessage(size_t size, const char * data) {
 		in_param = false;
 	}
 
-	for (unsigned int i = 0; i < param_num; i++) {
-		std::cerr << "  Parameter " << i << ": ";
-		std::cerr.write(param[i], param_size[i]);
-		std::cerr << std::endl;
-	}
-
-	if (strncasecmp(param[0], "sensor-update", param_size[0]) == 0) {
-	} else if (strncasecmp(param[0], "broadcast", param_size[0]) == 0) {
-	} else { // Unknown message
-	}
+	listener.ReceiveScratchMessage(param_num, param, param_size);
 }
 
 

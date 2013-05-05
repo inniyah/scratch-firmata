@@ -9,6 +9,8 @@
 #include <wx/tglbtn.h>
 #include <stdint.h>
 
+#include "IScratchListener.h"
+
 //#define LOG_MSG_TO_STDOUT
 //#define LOG_MSG_TO_WINDOW
 
@@ -29,7 +31,7 @@ const int ID_MENU = 10000;
 // ScratchFirmataFrame
 //----------------------------------------------------------------------------
 
-class ScratchFirmataFrame: public wxFrame {
+class ScratchFirmataFrame: public wxFrame, public IScratchListener {
 public:
 	ScratchFirmataFrame( wxWindow *parent, wxWindowID id, const wxString &title,
 		const wxPoint& pos = wxDefaultPosition,
@@ -42,6 +44,9 @@ private:
 	int parse_count;
 	int parse_command_len;
 	uint8_t parse_buf[4096];
+
+private:
+	virtual void ReceiveScratchMessage(unsigned int num_params, const char * param[], unsigned int param_size[]);
 
 private:
 	void init_data(void);

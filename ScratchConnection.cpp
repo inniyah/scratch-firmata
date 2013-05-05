@@ -60,7 +60,7 @@ void ScratchConnection::SendRaw(size_t size, const char * data) {
 		(char)((size >> 24) & 0xFF),
 		(char)((size >> 16) & 0xFF),
 		(char)((size >>  8) & 0xFF),
-		(char)(size & 0xFF)
+		(char)((size >>  0) & 0xFF)
 	};
 	if (::send(sockfd, header, sizeof(header), 0) < 0) {
 		std::cerr << "Error " << errno << " while sending the header: "<< strerror(errno) << std::endl;
@@ -78,16 +78,35 @@ void ScratchConnection::SendRaw(size_t size, const char * data) {
 void ScratchConnection::ReceiveRaw() {
 	if (sockfd < 0) if (!Connect()) return;
 
-	char buffer[BufferSize+1];
-	int rtn = ::recv(sockfd, buffer, sizeof(buffer), MSG_DONTWAIT);
-	if (rtn < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
+	char buffer[BufferSize+1]; buffer[BufferSize] = '\0';
+	int bytes_read = ::recv(sockfd, buffer, sizeof(buffer), MSG_DONTWAIT);
+	if (bytes_read < 0) {
+		if (errno != EAGAIN && errno != EWOULDBLOCK) { // Error
 			std::cerr << "Error " << errno << " while receiving the message: "<< strerror(errno) << std::endl;
 			Disconnect();
+			return;
+		} else { // Not data available at the moment
+			return;
 		}
+	} else if (bytes_read == 0) { // EOF
+		Disconnect();
 		return;
 	}
-	buffer[BufferSize] = '\0';
-	std::cerr << "Message received: " << buffer+4 << std::endl;
-}
 
+	std::cerr << "Data read from Scratch " << bytes_read << " bytes" << std::endl;
+	int bytes_left = bytes_read;
+	const char * buffer_pos = buffer;
+	while (bytes_left > 4) {
+		size_t size =
+			((size_t)(buffer_pos[0]) << 24) +
+			((size_t)(buffer_pos[1]) << 16) +
+			((size_t)(buffer_pos[2]) << 8) +
+			((size_t)(buffer_pos[3]) << 0);
+		buffer_pos += 4; bytes_left -= 4;
+		if (size > bytes_left) return;
+		std::cerr << "Message of length " << size << " received: ";
+		std::cerr.write(buffer_pos, size);
+		std::cerr << std::endl;
+		buffer_pos += size; bytes_left -= size;
+	}
+}

@@ -45,6 +45,15 @@ wxMenu *port_menu;
 
 ScratchConnection scratch_conn;
 
+class ScratchFirmataException : public std::exception {
+public:
+	ScratchFirmataException(const std::string & message) throw() : msg(message) { }
+	virtual ~ScratchFirmataException() throw() { }
+	const char * what() const throw() { return msg.c_str(); }
+private:
+	std::string msg;  // Exception message
+};
+
 #define MODE_INPUT    0x00
 #define MODE_OUTPUT   0x01
 #define MODE_ANALOG   0x02
@@ -592,27 +601,62 @@ void ScratchFirmataFrame::DoMessage(void)
 	}
 }
 
-void ScratchFirmataFrame::OnAbout( wxCommandEvent &event )
-{
-    wxMessageDialog dialog( this, _("Scratch Firmata Connector, by Miriam Ruiz\n based on Firmata Test 1.0, by Paul Stoffregen"),
-        wxT("Scratch Firmata Connector"), wxOK|wxICON_INFORMATION );
-    dialog.ShowModal();
+void ScratchFirmataFrame::OnAbout( wxCommandEvent &event ) {
+	wxMessageDialog dialog( this, _("Scratch Firmata Connector, by Miriam Ruiz\n based on Firmata Test 1.0, by Paul Stoffregen"),
+		wxT("Scratch Firmata Connector"), wxOK|wxICON_INFORMATION );
+	dialog.ShowModal();
 }
 
-void ScratchFirmataFrame::OnQuit( wxCommandEvent &event )
-{
-     Close( true );
+void ScratchFirmataFrame::OnQuit( wxCommandEvent &event ) {
+	Close( true );
 }
 
-void ScratchFirmataFrame::OnCloseWindow( wxCloseEvent &event )
-{
-    // if ! saved changes -> return
-    Destroy();
+void ScratchFirmataFrame::OnCloseWindow( wxCloseEvent &event ) {
+	// if ! saved changes -> return
+	Destroy();
 }
 
-void ScratchFirmataFrame::OnSize( wxSizeEvent &event )
-{
-    event.Skip( true );
+void ScratchFirmataFrame::OnSize( wxSizeEvent &event ) {
+	event.Skip( true );
+}
+
+static int str_to_int(const char str[], size_t length) {
+	int res = 0;
+	size_t i = 0;
+	bool is_negative = false;
+
+	while (i < length) {
+		if (str[i] == ' ' || str[i] == '\t') { ++i; continue; } // Remove trailing whitespaces
+		if (str[i] == '-') { ++i; is_negative = true; } // Negative number
+		if (str[i] == '+') { ++i; is_negative = false; } // Positive number
+		break;
+	}
+
+	int j = length - 1;
+	while (j > 0) {
+		if (str[j] == ' ' || str[j] == '\t') { --length; --j; } // Remove ending whitespaces
+		else break;
+	}
+
+	while (i < length) {
+		if (str[i] <= '9' && str[i] >= '0') {
+			int temp_res;
+			temp_res = res * 10 + str[i] - '0';
+			if ((temp_res + '0' - str[i]) / 10 != res) { // Overflow
+				throw ScratchFirmataException("Integer overflow");
+				return 0;
+			} else {
+				res = temp_res;
+			}
+		} else { // Invalid input
+			throw ScratchFirmataException("Character not allowed");
+			return 0;
+		}
+		++i;
+	}
+
+	if (is_negative) return -1 * res;
+	else return res;
 }
 
 void ScratchFirmataFrame::ReceiveScratchMessage(unsigned int num_params, const char * param[], unsigned int param_size[]) {
@@ -623,6 +667,25 @@ void ScratchFirmataFrame::ReceiveScratchMessage(unsigned int num_params, const c
 	}
 
 	if (strncasecmp(param[0], "sensor-update", param_size[0]) == 0) {
+		int value = 0;
+		if (num_params >= 3) {
+			try{
+				if (strncasecmp(param[2], "on", 2) == 0 || strncasecmp(param[2], "high", 4) == 0) {
+					value = 1;
+				} else if (strncasecmp(param[2], "off", 3) == 0 || strncasecmp(param[2], "low", 3) == 0) {
+					value = 1;
+				} else {
+					value = str_to_int(param[2], param_size[2]);
+				}
+
+				if (strncasecmp(param[1], "pin", 3) == 0 && param_size[1] > 3) {
+					int pin = str_to_int(param[1] + 3, param_size[1] - 3);
+					std::cerr << "Setting pin " << pin << " to " << value << std::endl;
+				}
+			} catch (ScratchFirmataException & caught) {
+				std::cerr << "Got exception: " << caught.what() << std::endl;
+			}
+		}
 	} else if (strncasecmp(param[0], "broadcast", param_size[0]) == 0) {
 	} else { // Unknown message
 	}

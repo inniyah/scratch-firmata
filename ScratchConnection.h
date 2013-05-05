@@ -15,7 +15,9 @@ public:
 	ScratchConnection() : sockfd(-1) {
 	}
 
-	static const unsigned short ScratchPort = 42001;
+	static const char * ScratchHost;
+	static const unsigned short ScratchPort;
+	static const size_t BufferSize;
 
 	bool Connect();
 	void Disconnect();

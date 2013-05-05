@@ -14,6 +14,10 @@
 #include <netinet/in.h>
 #include <errno.h>
 
+const char * ScratchConnection::ScratchHost = "127.0.0.1";
+const unsigned short ScratchConnection::ScratchPort = 42001;
+const size_t ScratchConnection::BufferSize = 240;
+
 bool ScratchConnection::Connect() {
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
@@ -22,7 +26,7 @@ bool ScratchConnection::Connect() {
 	if (sockfd < 0) {
 		goto error;
 	}
-	server = ::gethostbyname("127.0.0.1");
+	server = ::gethostbyname(ScratchHost);
 	if (server == NULL) {
 		goto error;
 	}
@@ -38,7 +42,7 @@ bool ScratchConnection::Connect() {
 error:
 	if (sockfd >= 0) ::close(sockfd);
 	sockfd = -1;
-	std::cerr << "Unable to establish connection with Scratch" << std::endl;
+	std::cerr << "Unable to establish connection with Scratch: " << strerror(errno) << std::endl;
 	return false;
 }
 
@@ -46,23 +50,26 @@ void ScratchConnection::Disconnect() {
 	::close(sockfd);
 	sockfd = -1;
 	std::cerr << "Lost connection with Scratch" << std::endl;
-
 }
 
 void ScratchConnection::SendRaw(size_t size, const char * data) {
 	if (sockfd < 0) if (!Connect()) return;
 
-	char header[4] = {
+	char header[5] = {
+		'c',
 		(char)((size >> 24) & 0xFF),
 		(char)((size >> 16) & 0xFF),
 		(char)((size >>  8) & 0xFF),
 		(char)(size & 0xFF)
 	};
 	if (::send(sockfd, header, sizeof(header), 0) < 0) {
+		std::cerr << "Error " << errno << " while sending the header: "<< strerror(errno) << std::endl;
 		Disconnect();
 		return;
 	}
+	std::cerr << "Message of size " << size << " to be sent" << std::endl;
 	if (::send(sockfd, data, size, 0) < 0) {
+		std::cerr << "Error " << errno << " while sending the data: "<< strerror(errno) << std::endl;
 		Disconnect();
 		return;
 	}
@@ -71,25 +78,16 @@ void ScratchConnection::SendRaw(size_t size, const char * data) {
 void ScratchConnection::ReceiveRaw() {
 	if (sockfd < 0) if (!Connect()) return;
 
-	char header[4];
-	int rtn = ::recv(sockfd, header, sizeof(header), MSG_DONTWAIT);
+	char buffer[BufferSize+1];
+	int rtn = ::recv(sockfd, buffer, sizeof(buffer), MSG_DONTWAIT);
 	if (rtn < 0) {
-		if (rtn != EAGAIN && rtn != EWOULDBLOCK) {
-					Disconnect();
+		if (errno != EAGAIN && errno != EWOULDBLOCK) {
+			std::cerr << "Error " << errno << " while receiving the message: "<< strerror(errno) << std::endl;
+			Disconnect();
 		}
 		return;
 	}
-	size_t size =
-		(((size_t)header[0]) << 24) +
-		(((size_t)header[0]) << 16) +
-		(((size_t)header[0]) << 8) +
-		((size_t)header[0]);
-	char buffer[size+1];
-	if (::recv(sockfd, buffer, size, 0) < 0) {
-		Disconnect();
-		return;
-	}
-	buffer[size] = '\0';
-	std::cerr << buffer << std::endl;
+	buffer[BufferSize] = '\0';
+	std::cerr << "Message received: " << buffer+4 << std::endl;
 }
 

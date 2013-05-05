@@ -594,8 +594,8 @@ void ScratchFirmataFrame::DoMessage(void)
 
 void ScratchFirmataFrame::OnAbout( wxCommandEvent &event )
 {
-    wxMessageDialog dialog( this, _("Firmata Test 1.0\nCopyright Paul Stoffregen"),
-        wxT("About Firmata Test"), wxOK|wxICON_INFORMATION );
+    wxMessageDialog dialog( this, _("Scratch Firmata Connector, by Miriam Ruiz\n based on Firmata Test 1.0, by Paul Stoffregen"),
+        wxT("Scratch Firmata Connector"), wxOK|wxICON_INFORMATION );
     dialog.ShowModal();
 }
 

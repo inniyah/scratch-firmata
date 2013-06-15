@@ -22,6 +22,7 @@
 
 #include "wx/wxprec.h"
 #include "ScratchFirmata.h"
+#include "Firmata.h"
 #include "Serial.h"
 #include "ScratchConnection.h"
 
@@ -31,12 +32,8 @@
 
 Serial port;
 
-typedef struct {
-	uint8_t mode;
-	uint8_t analog_channel;
-	uint64_t supported_modes;
-	uint32_t value;
-} pin_t;
+using namespace Firmata;
+typedef PinInfo pin_t;
 
 pin_t pin_info[128];
 wxString firmata_name = _("");
@@ -54,27 +51,6 @@ public:
 private:
 	std::string msg;  // Exception message
 };
-
-#define MODE_INPUT    0x00
-#define MODE_OUTPUT   0x01
-#define MODE_ANALOG   0x02
-#define MODE_PWM      0x03
-#define MODE_SERVO    0x04
-#define MODE_SHIFT    0x05
-#define MODE_I2C      0x06
-
-#define START_SYSEX             0xF0 // start a MIDI Sysex message
-#define END_SYSEX               0xF7 // end a MIDI Sysex message
-#define PIN_MODE_QUERY          0x72 // ask for current and supported pin modes
-#define PIN_MODE_RESPONSE       0x73 // reply with current and supported pin modes
-#define PIN_STATE_QUERY         0x6D
-#define PIN_STATE_RESPONSE      0x6E
-#define CAPABILITY_QUERY        0x6B
-#define CAPABILITY_RESPONSE     0x6C
-#define ANALOG_MAPPING_QUERY    0x69
-#define ANALOG_MAPPING_RESPONSE 0x6A
-#define REPORT_FIRMWARE         0x79 // report name and version of the firmware
-
 
 BEGIN_EVENT_TABLE(ScratchFirmataFrame,wxFrame)
 	EVT_MENU(wxID_ABOUT, ScratchFirmataFrame::OnAbout)
@@ -130,10 +106,7 @@ void ScratchFirmataFrame::init_data(void)
 	grid->Clear(true);
 	grid->SetRows(0);
 	for (int i=0; i < 128; i++) {
-		pin_info[i].mode = 255;
-		pin_info[i].analog_channel = 127;
-		pin_info[i].supported_modes = 0;
-		pin_info[i].value = 0;
+		pin_info[i].Reset();
 	}
 	tx_count = rx_count = 0;
 	firmata_name = _("");
@@ -191,19 +164,19 @@ void ScratchFirmataFrame::add_pin(int pin)
 	add_item_to_grid(pin, 0, pin_name);
 
 	wxArrayString list;
-	if (pin_info[pin].supported_modes & (1<<MODE_INPUT)) list.Add(_("Input"));
-	if (pin_info[pin].supported_modes & (1<<MODE_OUTPUT)) list.Add(_("Output"));
-	if (pin_info[pin].supported_modes & (1<<MODE_ANALOG)) list.Add(_("Analog"));
-	if (pin_info[pin].supported_modes & (1<<MODE_PWM)) list.Add(_("PWM"));
-	if (pin_info[pin].supported_modes & (1<<MODE_SERVO)) list.Add(_("Servo"));
+	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_INPUT))  list.Add(_("Input"));
+	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_OUTPUT)) list.Add(_("Output"));
+	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_ANALOG)) list.Add(_("Analog"));
+	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_PWM))    list.Add(_("PWM"));
+	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_SERVO))  list.Add(_("Servo"));
 	wxPoint pos = wxPoint(0, 0);
 	wxSize size = wxSize(-1, -1);
 	wxChoice *modes = new wxChoice(scroll, 8000+pin, pos, size, list);
-	if (pin_info[pin].mode == MODE_INPUT) modes->SetStringSelection(_("Input"));
-	if (pin_info[pin].mode == MODE_OUTPUT) modes->SetStringSelection(_("Output"));
-	if (pin_info[pin].mode == MODE_ANALOG) modes->SetStringSelection(_("Analog"));
-	if (pin_info[pin].mode == MODE_PWM) modes->SetStringSelection(_("PWM"));
-	if (pin_info[pin].mode == MODE_SERVO) modes->SetStringSelection(_("Servo"));
+	if (pin_info[pin].mode == PinInfo::MODE_INPUT)  modes->SetStringSelection(_("Input"));
+	if (pin_info[pin].mode == PinInfo::MODE_OUTPUT) modes->SetStringSelection(_("Output"));
+	if (pin_info[pin].mode == PinInfo::MODE_ANALOG) modes->SetStringSelection(_("Analog"));
+	if (pin_info[pin].mode == PinInfo::MODE_PWM)    modes->SetStringSelection(_("PWM"));
+	if (pin_info[pin].mode == PinInfo::MODE_SERVO)  modes->SetStringSelection(_("Servo"));
 	printf("create choice, mode = %d (%s)\n", pin_info[pin].mode,
 		(const char *)modes->GetStringSelection().c_str());
 	add_item_to_grid(pin, 1, modes);
@@ -237,11 +210,11 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 	printf("Mode Change, id = %d, pin=%d, ", id, pin);
 	printf("Mode = %s\n", (const char *)sel.c_str());
 	int mode = 255;
-	if (sel.IsSameAs(_("Input"))) mode = MODE_INPUT;
-	if (sel.IsSameAs(_("Output"))) mode = MODE_OUTPUT;
-	if (sel.IsSameAs(_("Analog"))) mode = MODE_ANALOG;
-	if (sel.IsSameAs(_("PWM"))) mode = MODE_PWM;
-	if (sel.IsSameAs(_("Servo"))) mode = MODE_SERVO;
+	if (sel.IsSameAs(_("Input")))  mode = PinInfo::MODE_INPUT;
+	if (sel.IsSameAs(_("Output"))) mode = PinInfo::MODE_OUTPUT;
+	if (sel.IsSameAs(_("Analog"))) mode = PinInfo::MODE_ANALOG;
+	if (sel.IsSameAs(_("PWM")))    mode = PinInfo::MODE_PWM;
+	if (sel.IsSameAs(_("Servo")))  mode = PinInfo::MODE_SERVO;
 	if (mode != pin_info[pin].mode) {
 		// send the mode change message
 		uint8_t buf[4];
@@ -254,12 +227,12 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 		pin_info[pin].value = 0;
 	}
 	// create the 3rd column control for this mode
-	if (mode == MODE_OUTPUT) {
+	if (mode == PinInfo::MODE_OUTPUT) {
 		wxToggleButton *button = new  wxToggleButton(scroll, 7000+pin,
 			pin_info[pin].value ? _("High") : _("Low"));
 		button->SetValue(pin_info[pin].value);
 		add_item_to_grid(pin, 2, button);
-	} else if (mode == MODE_INPUT) {
+	} else if (mode == PinInfo::MODE_INPUT) {
 		wxStaticText *text = new wxStaticText(scroll, 5000+pin,
 			pin_info[pin].value ? _("High") : _("Low"));
 		wxSize size = wxSize(128, -1);
@@ -267,7 +240,7 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 		text->SetWindowStyle(wxALIGN_CENTRE);
 		add_item_to_grid(pin, 2, text);
 
-	} else if (mode == MODE_ANALOG) {
+	} else if (mode == PinInfo::MODE_ANALOG) {
 		wxString val;
 		val.Printf(_("%d"), pin_info[pin].value);
 		wxStaticText *text = new wxStaticText(scroll, 5000+pin, val);
@@ -275,8 +248,8 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 		text->SetMinSize(size);
 		text->SetWindowStyle(wxALIGN_CENTRE);
 		add_item_to_grid(pin, 2, text);
-	} else if (mode == MODE_PWM || mode == MODE_SERVO) {
-		int maxval = (mode == MODE_PWM) ? 255 : 180;
+	} else if (mode == PinInfo::MODE_PWM || mode == PinInfo::MODE_SERVO) {
+		int maxval = (mode == PinInfo::MODE_PWM) ? 255 : 180;
 		wxSlider *slider = new wxSlider(scroll, 6000+pin,
 		  pin_info[pin].value, 0, maxval);
 		wxSize size = wxSize(128, -1);
@@ -300,7 +273,7 @@ void ScratchFirmataFrame::OnToggleButton(wxCommandEvent &event)
 	int port_val = 0;
 	for (int i=0; i<8; i++) {
 		int p = port_num * 8 + i;
-		if (pin_info[p].mode == MODE_OUTPUT || pin_info[p].mode == MODE_INPUT) {
+		if (pin_info[p].mode == PinInfo::MODE_OUTPUT || pin_info[p].mode == PinInfo::MODE_INPUT) {
 			if (pin_info[p].value) {
 				port_val |= (1<<i);
 			}
@@ -501,7 +474,7 @@ void ScratchFirmataFrame::DoMessage(void)
 		int pin = port_num * 8;
 		//printf("port_num = %d, port_val = %d\n", port_num, port_val);
 		for (int mask=1; mask & 0xFF; mask <<= 1, pin++) {
-			if (pin_info[pin].mode == MODE_INPUT) {
+			if (pin_info[pin].mode == PinInfo::MODE_INPUT) {
 				uint32_t val = (port_val & mask) ? 1 : 0;
 				if (pin_info[pin].value != val) {
 					printf("pin %d is %d\n", pin, val);

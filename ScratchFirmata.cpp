@@ -205,7 +205,7 @@ void ScratchFirmataFrame::add_pin(int pin)
 	if (pin_info[pin].mode == MODE_PWM) modes->SetStringSelection(_("PWM"));
 	if (pin_info[pin].mode == MODE_SERVO) modes->SetStringSelection(_("Servo"));
 	printf("create choice, mode = %d (%s)\n", pin_info[pin].mode,
-		(const char *)modes->GetStringSelection());
+		(const char *)modes->GetStringSelection().c_str());
 	add_item_to_grid(pin, 1, modes);
 	modes->Validate();
 	wxCommandEvent cmd = wxCommandEvent(wxEVT_COMMAND_CHOICE_SELECTED, 8000+pin);
@@ -235,7 +235,7 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 	wxChoice *ch = (wxChoice *)FindWindowById(id, scroll);
 	wxString sel = ch->GetStringSelection();
 	printf("Mode Change, id = %d, pin=%d, ", id, pin);
-	printf("Mode = %s\n", (const char *)sel);
+	printf("Mode = %s\n", (const char *)sel.c_str());
 	int mode = 255;
 	if (sel.IsSameAs(_("Input"))) mode = MODE_INPUT;
 	if (sel.IsSameAs(_("Output"))) mode = MODE_OUTPUT;
@@ -357,7 +357,7 @@ void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 
 	port.Close();
 	init_data();
-	printf("OnPort, id = %d, name = %s\n", id, (const char *)name);
+	printf("OnPort, id = %d, name = %s\n", id, (const char *)name.c_str());
 	if (id == 9000) return;
 
 	port.Open(name);
@@ -674,7 +674,7 @@ void ScratchFirmataFrame::ReceiveScratchMessage(unsigned int num_params, const c
 				if (strncasecmp(param[2], "on", 2) == 0 || strncasecmp(param[2], "high", 4) == 0) {
 					value = 1;
 				} else if (strncasecmp(param[2], "off", 3) == 0 || strncasecmp(param[2], "low", 3) == 0) {
-					value = 1;
+					value = 0;
 				} else {
 					value = str_to_int(param[2], param_size[2]);
 				}
@@ -707,7 +707,7 @@ void ScratchFirmataMenu::OnShowPortList(wxMenuEvent &event)
 	int num, any=0;
 
 	menu = event.GetMenu();
-	printf("OnShowPortList, %s\n", (const char *)menu->GetTitle());
+	printf("OnShowPortList, %s\n", (const char *)menu->GetTitle().c_str());
 	if (menu != port_menu) return;
 
 	wxMenuItemList old_items = menu->GetMenuItems();

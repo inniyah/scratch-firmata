@@ -11,7 +11,7 @@
 
 #include "IScratchListener.h"
 
-//#define LOG_MSG_TO_STDOUT
+#define LOG_MSG_TO_STDOUT
 //#define LOG_MSG_TO_WINDOW
 
 #if defined(LOG_MSG_TO_WINDOW)

@@ -39,8 +39,9 @@ typedef struct {
 } pin_t;
 
 pin_t pin_info[128];
-wxString firmata_name;
-unsigned int rx_count, tx_count;
+wxString firmata_name = _("");
+unsigned int rx_count = 0;
+unsigned int tx_count = 0;
 wxMenu *port_menu;
 
 ScratchConnection scratch_conn;
@@ -223,7 +224,7 @@ void ScratchFirmataFrame::UpdateStatus(void)
 		status = _("Please choose serial port");
 	}
 	SetStatusText(status);
-}	
+}
 
 
 void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
@@ -254,7 +255,7 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 	}
 	// create the 3rd column control for this mode
 	if (mode == MODE_OUTPUT) {
-		wxToggleButton *button = new  wxToggleButton(scroll, 7000+pin, 
+		wxToggleButton *button = new  wxToggleButton(scroll, 7000+pin,
 			pin_info[pin].value ? _("High") : _("Low"));
 		button->SetValue(pin_info[pin].value);
 		add_item_to_grid(pin, 2, button);
@@ -368,7 +369,7 @@ void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 		parse_count = 0;
 		parse_command_len = 0;
 		UpdateStatus();
-		/* 
+		/*
 		The startup strategy is to open the port and immediately
 		send the REPORT_FIRMWARE message.  When we receive the
 		firmware name reply, then we know the board is ready to
@@ -746,7 +747,7 @@ bool ScratchFirmataApp::OnInit()
 {
     ScratchFirmataFrame *frame = new ScratchFirmataFrame( NULL, -1, _("Scratch Firmata Connector"), wxPoint(20,20), wxSize(400,640) );
     frame->Show( true );
-    
+
     return true;
 }
 

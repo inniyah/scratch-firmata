@@ -23,6 +23,12 @@ bool ScratchConnection::Connect() {
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
 
+	if (ConnectionTimer.isStopped() || ConnectionTimer.getElapsedMilliseconds() > ConnectionTimerWait) {
+		ConnectionTimer.start();
+	} else {
+		return false;
+	}
+
 	sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
 		goto error;
@@ -40,6 +46,7 @@ bool ScratchConnection::Connect() {
 	}
 	std::cerr << "Established connection with Scratch" << std::endl;
 	return true;
+
 error:
 	if (sockfd >= 0) ::close(sockfd);
 	sockfd = -1;

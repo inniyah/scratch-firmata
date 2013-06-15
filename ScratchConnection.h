@@ -11,6 +11,7 @@
 #include <netdb.h>
 
 #include "IScratchListener.h"
+#include "PerformanceTimer.h"
 
 class ScratchConnection {
 public:
@@ -35,6 +36,8 @@ private:
 
 private:
 	int sockfd;
+	PerformanceTimer ConnectionTimer;
+	static const float ConnectionTimerWait = 5000.0; // in milliseconds
 };
 
 #endif // SCRATCH_CONNECTION_H_9ECEBDBE_B504_11E2_81D8_001485C48853

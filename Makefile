@@ -2,14 +2,14 @@ PROGRAM=ScratchFirmata
 
 all: $(PROGRAM)
 
-OBJS = Serial.o PerformanceTimer.o ScratchConnection.o ScratchFirmata.o
+OBJS = Serial.o PerformanceTimer.o ScratchConnection.o Firmata.o ScratchFirmata.o
 
 PKG_CONFIG=
 PKG_CONFIG_CFLAGS=`wx-config --cflags`
 PKG_CONFIG_LIBS=`wx-config --libs`
 
 EXTRA_CFLAGS=$(PKG_CONFIG_CFLAGS) -DLINUX
-CFLAGS= -O2 -g -Wall
+CFLAGS= -O2 -g -Wall -Wno-unused-local-typedefs
 
 LDFLAGS= -Wl,-z,defs -Wl,--as-needed -Wl,--no-undefined
 EXTRA_LDFLAGS=

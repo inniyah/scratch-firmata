@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include "IScratchListener.h"
+#include "IFirmataListener.h"
 
 #define LOG_MSG_TO_STDOUT
 //#define LOG_MSG_TO_WINDOW
@@ -31,7 +32,7 @@ const int ID_MENU = 10000;
 // ScratchFirmataFrame
 //----------------------------------------------------------------------------
 
-class ScratchFirmataFrame: public wxFrame, public IScratchListener {
+class ScratchFirmataFrame: public wxFrame, public IScratchListener, public IFirmataListener {
 public:
 	ScratchFirmataFrame( wxWindow *parent, wxWindowID id, const wxString &title,
 		const wxPoint& pos = wxDefaultPosition,
@@ -46,7 +47,13 @@ private:
 	uint8_t parse_buf[4096];
 
 private:
+	// IScratchListener
 	virtual void ReceiveScratchMessage(unsigned int num_params, const char * param[], unsigned int param_size[]);
+
+	// IFirmataListener
+	virtual void PinValueChanged(unsigned int pin_num);
+	virtual void PinFound(unsigned int pin_num);
+	virtual void FirmataStatusChanged();
 
 private:
 	void init_data(void);
@@ -54,8 +61,6 @@ private:
 	void add_item_to_grid(int row, int col, wxWindow *item);
 	void add_pin(int pin);
 	void UpdateStatus(void);
-	void Parse(const uint8_t *buf, int len);
-	void DoMessage(void);
 	void OnAbout(wxCommandEvent &event);
 	void OnQuit(wxCommandEvent &event);
 	void OnIdle(wxIdleEvent &event);

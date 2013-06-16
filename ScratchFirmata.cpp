@@ -23,22 +23,16 @@
 #include "wx/wxprec.h"
 #include "ScratchFirmata.h"
 #include "Firmata.h"
-#include "Serial.h"
 #include "ScratchConnection.h"
 
 //------------------------------------------------------------------------------
 // ScratchFirmataFrame
 //------------------------------------------------------------------------------
 
-Serial port;
-
 using namespace Firmata;
-typedef PinInfo pin_t;
+Device device;
 
-pin_t pin_info[128];
 wxString firmata_name = _("");
-unsigned int rx_count = 0;
-unsigned int tx_count = 0;
 wxMenu *port_menu;
 
 ScratchConnection scratch_conn;
@@ -73,7 +67,6 @@ ScratchFirmataFrame::ScratchFirmataFrame( wxWindow *parent, wxWindowID id, const
 	#ifdef LOG_MSG_TO_WINDOW
 	wxLog::SetActiveTarget(new wxLogWindow(this, _("Debug Messages")));
 	#endif
-	port.Set_baud(57600);
 	wxMenuBar *menubar = new wxMenuBar;
 	wxMenu *menu = new wxMenu;
 	menu->Append( wxID_EXIT, _("Quit"), _(""));
@@ -95,7 +88,7 @@ ScratchFirmataFrame::ScratchFirmataFrame( wxWindow *parent, wxWindowID id, const
 	// appears in the window without requiring any
 	// actual communication...
 	for (int i=0; i<80; i++) {
-		pin_info[i].supported_modes = 7;
+		device.pin_info[i].supported_modes = 7;
 		add_pin(i);
 	}
 #endif
@@ -105,10 +98,8 @@ void ScratchFirmataFrame::init_data(void)
 {
 	grid->Clear(true);
 	grid->SetRows(0);
-	for (int i=0; i < 128; i++) {
-		pin_info[i].Reset();
-	}
-	tx_count = rx_count = 0;
+	device.resetPins();
+	device.resetRxTxCount();
 	firmata_name = _("");
 	UpdateStatus();
 	new_size();
@@ -164,20 +155,20 @@ void ScratchFirmataFrame::add_pin(int pin)
 	add_item_to_grid(pin, 0, pin_name);
 
 	wxArrayString list;
-	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_INPUT))  list.Add(_("Input"));
-	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_OUTPUT)) list.Add(_("Output"));
-	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_ANALOG)) list.Add(_("Analog"));
-	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_PWM))    list.Add(_("PWM"));
-	if (pin_info[pin].supported_modes & (1 << PinInfo::MODE_SERVO))  list.Add(_("Servo"));
+	if (device.doesPinSupportMode(pin, PinInfo::MODE_INPUT))  list.Add(_("Input"));
+	if (device.doesPinSupportMode(pin, PinInfo::MODE_OUTPUT)) list.Add(_("Output"));
+	if (device.doesPinSupportMode(pin, PinInfo::MODE_ANALOG)) list.Add(_("Analog"));
+	if (device.doesPinSupportMode(pin, PinInfo::MODE_PWM))    list.Add(_("PWM"));
+	if (device.doesPinSupportMode(pin, PinInfo::MODE_SERVO))  list.Add(_("Servo"));
 	wxPoint pos = wxPoint(0, 0);
 	wxSize size = wxSize(-1, -1);
 	wxChoice *modes = new wxChoice(scroll, 8000+pin, pos, size, list);
-	if (pin_info[pin].mode == PinInfo::MODE_INPUT)  modes->SetStringSelection(_("Input"));
-	if (pin_info[pin].mode == PinInfo::MODE_OUTPUT) modes->SetStringSelection(_("Output"));
-	if (pin_info[pin].mode == PinInfo::MODE_ANALOG) modes->SetStringSelection(_("Analog"));
-	if (pin_info[pin].mode == PinInfo::MODE_PWM)    modes->SetStringSelection(_("PWM"));
-	if (pin_info[pin].mode == PinInfo::MODE_SERVO)  modes->SetStringSelection(_("Servo"));
-	printf("create choice, mode = %d (%s)\n", pin_info[pin].mode,
+	if (device.getCurrentPinMode(pin) == PinInfo::MODE_INPUT)  modes->SetStringSelection(_("Input"));
+	if (device.getCurrentPinMode(pin) == PinInfo::MODE_OUTPUT) modes->SetStringSelection(_("Output"));
+	if (device.getCurrentPinMode(pin) == PinInfo::MODE_ANALOG) modes->SetStringSelection(_("Analog"));
+	if (device.getCurrentPinMode(pin) == PinInfo::MODE_PWM)    modes->SetStringSelection(_("PWM"));
+	if (device.getCurrentPinMode(pin) == PinInfo::MODE_SERVO)  modes->SetStringSelection(_("Servo"));
+	printf("create choice, mode = %d (%s)\n", device.getCurrentPinMode(pin),
 		(const char *)modes->GetStringSelection().c_str());
 	add_item_to_grid(pin, 1, modes);
 	modes->Validate();
@@ -189,10 +180,10 @@ void ScratchFirmataFrame::add_pin(int pin)
 void ScratchFirmataFrame::UpdateStatus(void)
 {
 	wxString status;
-	if (port.Is_open()) {
-		status.Printf(port.get_name() + _("    ") +
+	if (device.isOpen()) {
+		status.Printf(device.port.get_name() + _("    ") +
 			firmata_name + _("    Tx:%u Rx:%u"),
-			tx_count, rx_count);
+			device.getTxCount(), device.getRxCount());
 	} else {
 		status = _("Please choose serial port");
 	}
@@ -215,26 +206,24 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 	if (sel.IsSameAs(_("Analog"))) mode = PinInfo::MODE_ANALOG;
 	if (sel.IsSameAs(_("PWM")))    mode = PinInfo::MODE_PWM;
 	if (sel.IsSameAs(_("Servo")))  mode = PinInfo::MODE_SERVO;
-	if (mode != pin_info[pin].mode) {
+	if (mode != device.getCurrentPinMode(pin)) {
 		// send the mode change message
 		uint8_t buf[4];
 		buf[0] = 0xF4;
 		buf[1] = pin;
 		buf[2] = mode;
-		port.Write(buf, 3);
-		tx_count += 3;
-		pin_info[pin].mode = mode;
-		pin_info[pin].value = 0;
+		device.write(buf, 3);
+		device.setCurrentPinMode(pin, mode);
 	}
 	// create the 3rd column control for this mode
 	if (mode == PinInfo::MODE_OUTPUT) {
 		wxToggleButton *button = new  wxToggleButton(scroll, 7000+pin,
-			pin_info[pin].value ? _("High") : _("Low"));
-		button->SetValue(pin_info[pin].value);
+			device.getCurrentPinValue(pin) ? _("High") : _("Low"));
+		button->SetValue(device.getCurrentPinValue(pin));
 		add_item_to_grid(pin, 2, button);
 	} else if (mode == PinInfo::MODE_INPUT) {
 		wxStaticText *text = new wxStaticText(scroll, 5000+pin,
-			pin_info[pin].value ? _("High") : _("Low"));
+			device.getCurrentPinValue(pin) ? _("High") : _("Low"));
 		wxSize size = wxSize(128, -1);
 		text->SetMinSize(size);
 		text->SetWindowStyle(wxALIGN_CENTRE);
@@ -242,7 +231,7 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 
 	} else if (mode == PinInfo::MODE_ANALOG) {
 		wxString val;
-		val.Printf(_("%d"), pin_info[pin].value);
+		val.Printf(_("%d"), device.getCurrentPinValue(pin));
 		wxStaticText *text = new wxStaticText(scroll, 5000+pin, val);
 		wxSize size = wxSize(128, -1);
 		text->SetMinSize(size);
@@ -251,7 +240,7 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 	} else if (mode == PinInfo::MODE_PWM || mode == PinInfo::MODE_SERVO) {
 		int maxval = (mode == PinInfo::MODE_PWM) ? 255 : 180;
 		wxSlider *slider = new wxSlider(scroll, 6000+pin,
-		  pin_info[pin].value, 0, maxval);
+		  device.getCurrentPinValue(pin), 0, maxval);
 		wxSize size = wxSize(128, -1);
 		slider->SetMinSize(size);
 		add_item_to_grid(pin, 2, slider);
@@ -268,13 +257,13 @@ void ScratchFirmataFrame::OnToggleButton(wxCommandEvent &event)
 	int val = button->GetValue() ? 1 : 0;
 	printf("Toggle Button, id = %d, pin=%d, val=%d\n", id, pin, val);
 	button->SetLabel(val ? _("High") : _("Low"));
-	pin_info[pin].value = val;
+	device.setCurrentPinValue(pin, val);
 	int port_num = pin / 8;
 	int port_val = 0;
 	for (int i=0; i<8; i++) {
 		int p = port_num * 8 + i;
-		if (pin_info[p].mode == PinInfo::MODE_OUTPUT || pin_info[p].mode == PinInfo::MODE_INPUT) {
-			if (pin_info[p].value) {
+		if (device.getCurrentPinMode(p) == PinInfo::MODE_OUTPUT || device.getCurrentPinMode(p) == PinInfo::MODE_INPUT) {
+			if (device.getCurrentPinValue(p)) {
 				port_val |= (1<<i);
 			}
 		}
@@ -283,8 +272,7 @@ void ScratchFirmataFrame::OnToggleButton(wxCommandEvent &event)
 	buf[0] = 0x90 | port_num;
 	buf[1] = port_val & 0x7F;
 	buf[2] = (port_val >> 7) & 0x7F;
-	port.Write(buf, 3);
-	tx_count += 3;
+	device.write(buf, 3);
 	UpdateStatus();
 }
 
@@ -301,8 +289,7 @@ void ScratchFirmataFrame::OnSliderDrag(wxScrollEvent &event)
 		buf[0] = 0xE0 | pin;
 		buf[1] = val & 0x7F;
 		buf[2] = (val >> 7) & 0x7F;
-		port.Write(buf, 3);
-		tx_count += 3;
+		device.write(buf, 3);
 	} else {
 		uint8_t buf[12];
 		int len=4;
@@ -315,8 +302,7 @@ void ScratchFirmataFrame::OnSliderDrag(wxScrollEvent &event)
 		if (val > 0x00200000) buf[len++] = (val >> 21) & 0x7F;
 		if (val > 0x10000000) buf[len++] = (val >> 28) & 0x7F;
 		buf[len++] = 0xF7;
-		port.Write(buf, len);
-		tx_count += len;
+		device.write(buf, len);
 	}
 	UpdateStatus();
 }
@@ -328,17 +314,17 @@ void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 	int id = event.GetId();
 	wxString name = port_menu->FindItem(id)->GetLabel();
 
-	port.Close();
+	device.port.Close();
 	init_data();
 	printf("OnPort, id = %d, name = %s\n", id, (const char *)name.c_str());
 	if (id == 9000) return;
 
-	port.Open(name);
-	port.Set_baud(57600);
-	if (port.Is_open()) {
+	device.port.Open(name);
+	device.port.Set_baud(57600);
+	if (device.isOpen()) {
 		printf("port is open\n");
 		firmata_name = _("");
-		rx_count = tx_count = 0;
+		device.resetRxTxCount();
 		parse_count = 0;
 		parse_command_len = 0;
 		UpdateStatus();
@@ -370,8 +356,7 @@ void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 		buf[0] = START_SYSEX;
 		buf[1] = REPORT_FIRMWARE; // read firmata name & version
 		buf[2] = END_SYSEX;
-		port.Write(buf, 3);
-		tx_count += 3;
+		device.write(buf, 3);
 		wxWakeUpIdle();
 	} else {
 		printf("error opening port\n");
@@ -381,198 +366,45 @@ void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 
 void ScratchFirmataFrame::OnIdle(wxIdleEvent &event)
 {
-	uint8_t buf[1024];
-	int r;
+	bool request_more = false;
+	//printf("Idle event\n");
 
 	scratch_conn.ReceiveScratchMessages(*this);
+	request_more = device.ReadFromDevice(*this);
 
-	//printf("Idle event\n");
-	r = port.Input_wait(40);
-	if (r > 0) {
-		r = port.Read(buf, sizeof(buf));
-		if (r < 0) {
-			// error
-			return;
-		}
-		if (r > 0) {
-			// parse
-			rx_count += r;
-			for (int i=0; i < r; i++) {
-				//printf("%02X ", buf[i]);
-			}
-			//printf("\n");
-			Parse(buf, r);
-			UpdateStatus();
-		}
-	} else if (r < 0) {
-		return;
-	}
-	event.RequestMore(true);
+	if (request_more)
+		event.RequestMore(true);
 }
 
-void ScratchFirmataFrame::Parse(const uint8_t *buf, int len)
-{
-	const uint8_t *p, *end;
+void ScratchFirmataFrame::FirmataStatusChanged() { // IFirmataListener
+	UpdateStatus();
+}
 
-	p = buf;
-	end = p + len;
-	for (p = buf; p < end; p++) {
-		uint8_t msn = *p & 0xF0;
-		if (msn == 0xE0 || msn == 0x90 || *p == 0xF9) {
-			parse_command_len = 3;
-			parse_count = 0;
-		} else if (msn == 0xC0 || msn == 0xD0) {
-			parse_command_len = 2;
-			parse_count = 0;
-		} else if (*p == START_SYSEX) {
-			parse_count = 0;
-			parse_command_len = sizeof(parse_buf);
-		} else if (*p == END_SYSEX) {
-			parse_command_len = parse_count + 1;
-		} else if (*p & 0x80) {
-			parse_command_len = 1;
-			parse_count = 0;
+void ScratchFirmataFrame::PinValueChanged(unsigned int pin_num) { // IFirmataListener
+	if (device.getCurrentPinMode(pin_num) == PinInfo::MODE_ANALOG) {
+		wxStaticText *text = (wxStaticText *)
+		FindWindowById(5000 + pin_num, scroll);
+		if (text) {
+			wxString val;
+			val.Printf(_("A%d: %d"),
+				device.getCurrentPinAnalogChannel(pin_num),
+				device.getCurrentPinValue(pin_num)
+			);
+			text->SetLabel(val);
 		}
-		if (parse_count < (int)sizeof(parse_buf)) {
-			parse_buf[parse_count++] = *p;
-		}
-		if (parse_count == parse_command_len) {
-			DoMessage();
-			parse_count = parse_command_len = 0;
+	}
+
+	else if (device.getCurrentPinMode(pin_num) == PinInfo::MODE_INPUT) {
+		wxStaticText *text = (wxStaticText *)
+		FindWindowById(5000 + pin_num, scroll);
+		if (text) {
+			text->SetLabel(device.getCurrentPinValue(pin_num) ? _("High") : _("Low"));
 		}
 	}
 }
 
-void ScratchFirmataFrame::DoMessage(void)
-{
-	uint8_t cmd = (parse_buf[0] & 0xF0);
-
-	//printf("message, %d bytes, %02X\n", parse_count, parse_buf[0]);
-
-	if (cmd == 0xE0 && parse_count == 3) {
-		int analog_ch = (parse_buf[0] & 0x0F);
-		int analog_val = parse_buf[1] | (parse_buf[2] << 7);
-		for (int pin=0; pin<128; pin++) {
-			if (pin_info[pin].analog_channel == analog_ch) {
-				pin_info[pin].value = analog_val;
-				//printf("pin %d is A%d = %d\n", pin, analog_ch, analog_val);
-				wxStaticText *text = (wxStaticText *)
-				  FindWindowById(5000 + pin, scroll);
-				if (text) {
-					wxString val;
-					val.Printf(_("A%d: %d"), analog_ch, analog_val);
-					text->SetLabel(val);
-				}
-				return;
-			}
-		}
-		return;
-	}
-	if (cmd == 0x90 && parse_count == 3) {
-		int port_num = (parse_buf[0] & 0x0F);
-		int port_val = parse_buf[1] | (parse_buf[2] << 7);
-		int pin = port_num * 8;
-		//printf("port_num = %d, port_val = %d\n", port_num, port_val);
-		for (int mask=1; mask & 0xFF; mask <<= 1, pin++) {
-			if (pin_info[pin].mode == PinInfo::MODE_INPUT) {
-				uint32_t val = (port_val & mask) ? 1 : 0;
-				if (pin_info[pin].value != val) {
-					printf("pin %d is %d\n", pin, val);
-					wxStaticText *text = (wxStaticText *)
-					  FindWindowById(5000 + pin, scroll);
-					if (text) text->SetLabel(val ? _("High") : _("Low"));
-					pin_info[pin].value = val;
-				}
-			}
-		}
-		return;
-	}
-
-
-	if (parse_buf[0] == START_SYSEX && parse_buf[parse_count-1] == END_SYSEX) {
-		// Sysex message
-		if (parse_buf[1] == REPORT_FIRMWARE) {
-			char name[140];
-			int len=0;
-			for (int i=4; i < parse_count-2; i+=2) {
-				name[len++] = (parse_buf[i] & 0x7F)
-				  | ((parse_buf[i+1] & 0x7F) << 7);
-			}
-			name[len++] = '-';
-			name[len++] = parse_buf[2] + '0';
-			name[len++] = '.';
-			name[len++] = parse_buf[3] + '0';
-			name[len++] = 0;
-			firmata_name = wxString(name,wxConvUTF8);
-			// query the board's capabilities only after hearing the
-			// REPORT_FIRMWARE message.  For boards that reset when
-			// the port open (eg, Arduino with reset=DTR), they are
-			// not ready to communicate for some time, so the only
-			// way to reliably query their capabilities is to wait
-			// until the REPORT_FIRMWARE message is heard.
-			uint8_t buf[80];
-			len=0;
-			buf[len++] = START_SYSEX;
-			buf[len++] = ANALOG_MAPPING_QUERY; // read analog to pin # info
-			buf[len++] = END_SYSEX;
-			buf[len++] = START_SYSEX;
-			buf[len++] = CAPABILITY_QUERY; // read capabilities
-			buf[len++] = END_SYSEX;
-			for (int i=0; i<16; i++) {
-				buf[len++] = 0xC0 | i;  // report analog
-				buf[len++] = 1;
-				buf[len++] = 0xD0 | i;  // report digital
-				buf[len++] = 1;
-			}
-			port.Write(buf, len);
-			tx_count += len;
-		} else if (parse_buf[1] == CAPABILITY_RESPONSE) {
-			int pin, i, n;
-			for (pin=0; pin < 128; pin++) {
-				pin_info[pin].supported_modes = 0;
-			}
-			for (i=2, n=0, pin=0; i<parse_count; i++) {
-				if (parse_buf[i] == 127) {
-					pin++;
-					n = 0;
-					continue;
-				}
-				if (n == 0) {
-					// first byte is supported mode
-					pin_info[pin].supported_modes |= (1<<parse_buf[i]);
-				}
-				n = n ^ 1;
-			}
-			// send a state query for for every pin with any modes
-			for (pin=0; pin < 128; pin++) {
-				uint8_t buf[512];
-				int len=0;
-				if (pin_info[pin].supported_modes) {
-					buf[len++] = START_SYSEX;
-					buf[len++] = PIN_STATE_QUERY;
-					buf[len++] = pin;
-					buf[len++] = END_SYSEX;
-				}
-				port.Write(buf, len);
-				tx_count += len;
-			}
-		} else if (parse_buf[1] == ANALOG_MAPPING_RESPONSE) {
-			int pin=0;
-			for (int i=2; i<parse_count-1; i++) {
-				pin_info[pin].analog_channel = parse_buf[i];
-				pin++;
-			}
-			return;
-		} else if (parse_buf[1] == PIN_STATE_RESPONSE && parse_count >= 6) {
-			int pin = parse_buf[2];
-			pin_info[pin].mode = parse_buf[3];
-			pin_info[pin].value = parse_buf[4];
-			if (parse_count > 6) pin_info[pin].value |= (parse_buf[5] << 7);
-			if (parse_count > 7) pin_info[pin].value |= (parse_buf[6] << 14);
-			add_pin(pin);
-		}
-		return;
-	}
+void ScratchFirmataFrame::PinFound(unsigned int pin_num) { // IFirmataListener
+	add_pin(pin_num);
 }
 
 void ScratchFirmataFrame::OnAbout( wxCommandEvent &event ) {
@@ -633,6 +465,7 @@ static int str_to_int(const char str[], size_t length) {
 	else return res;
 }
 
+// IScratchListener
 void ScratchFirmataFrame::ReceiveScratchMessage(unsigned int num_params, const char * param[], unsigned int param_size[]) {
 	for (unsigned int i = 0; i < num_params; i++) {
 		std::cerr << "  Parameter " << i << ": ";
@@ -689,12 +522,12 @@ void ScratchFirmataMenu::OnShowPortList(wxMenuEvent &event)
 		menu->Delete(old_items[i]);
 	}
 	menu->AppendRadioItem(9000, _(" (none)"));
-	wxArrayString list = port.port_list();
+	wxArrayString list = device.port.port_list();
 	num = list.GetCount();
 	for (int i=0; i < num; i++) {
 		//printf("%d: port %s\n", i, (const char *)list[i]);
 		item = menu->AppendRadioItem(9001 + i, list[i]);
-		if (port.Is_open() && port.get_name().IsSameAs(list[i])) {
+		if (device.isOpen() && device.port.get_name().IsSameAs(list[i])) {
 			menu->Check(9001 + i, true);
 			any = 1;
 		}

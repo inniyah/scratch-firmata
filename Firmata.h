@@ -64,9 +64,10 @@ public:
 
 	bool ReadFromDevice(IFirmataListener & listener);
 
-	void resetPins() {
-		for (int i=0; i < MAX_PINS; i++)
-			pin_info[i].reset();
+	void reset() {
+		resetPins();
+		resetRxTxCount();
+		firmata_name = "";
 	}
 
 	inline bool isOpen() {
@@ -77,6 +78,10 @@ public:
 		int w = port.Write(ptr, len);
 		adjustTxCount(len);
 		return w;
+	}
+
+	inline const char * getFirmataName() const {
+		return firmata_name.c_str();
 	}
 
 	inline bool doesPinSupportMode(unsigned int pin_num, int mode) const {
@@ -106,10 +111,6 @@ public:
 		return true;
 	}
 
-	inline void resetRxTxCount() {
-		tx_count = rx_count = 0;
-	}
-
 	inline unsigned int getTxCount() const {
 		return tx_count;
 	}
@@ -134,6 +135,14 @@ private:
 	int parse_command_len;
 	uint8_t parse_buf[4096];
 
+	inline void resetRxTxCount() {
+		tx_count = rx_count = 0;
+	}
+
+	void resetPins() {
+		for (int i=0; i < MAX_PINS; i++)
+			pin_info[i].reset();
+	}
 };
 
 } // namespace Firmata

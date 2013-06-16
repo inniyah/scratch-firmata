@@ -32,7 +32,6 @@
 using namespace Firmata;
 Device device;
 
-wxString firmata_name = _("");
 wxMenu *port_menu;
 
 ScratchConnection scratch_conn;
@@ -98,9 +97,7 @@ void ScratchFirmataFrame::init_data(void)
 {
 	grid->Clear(true);
 	grid->SetRows(0);
-	device.resetPins();
-	device.resetRxTxCount();
-	firmata_name = _("");
+	device.reset();
 	UpdateStatus();
 	new_size();
 }
@@ -182,7 +179,7 @@ void ScratchFirmataFrame::UpdateStatus(void)
 	wxString status;
 	if (device.isOpen()) {
 		status.Printf(device.port.get_name() + _("    ") +
-			firmata_name + _("    Tx:%u Rx:%u"),
+			wxString(device.getFirmataName(), wxConvUTF8) + _("    Tx:%u Rx:%u"),
 			device.getTxCount(), device.getRxCount());
 	} else {
 		status = _("Please choose serial port");
@@ -323,8 +320,7 @@ void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 	device.port.Set_baud(57600);
 	if (device.isOpen()) {
 		printf("port is open\n");
-		firmata_name = _("");
-		device.resetRxTxCount();
+		device.reset();
 		parse_count = 0;
 		parse_command_len = 0;
 		UpdateStatus();

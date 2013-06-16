@@ -62,6 +62,8 @@ void ScratchConnection::Disconnect() {
 void ScratchConnection::SendRaw(size_t size, const char * data) {
 	if (sockfd < 0) if (!Connect()) return;
 
+	printf("Sending so Scratch: '%s' (%d bytes)\n", data, size);
+
 	char header[4] = {
 		(char)((size >> 24) & 0xFF),
 		(char)((size >> 16) & 0xFF),
@@ -73,7 +75,7 @@ void ScratchConnection::SendRaw(size_t size, const char * data) {
 		Disconnect();
 		return;
 	}
-	std::cerr << "Message of size " << size << " to be sent" << std::endl;
+	//std::cerr << "Message of size " << size << " to be sent" << std::endl;
 	if (::send(sockfd, data, size, 0) < 0) {
 		std::cerr << "Error " << errno << " while sending the data: "<< strerror(errno) << std::endl;
 		Disconnect();
@@ -99,7 +101,7 @@ void ScratchConnection::ReceiveRaw(IScratchListener & listener) {
 		return;
 	}
 
-	std::cerr << "Data read from Scratch " << bytes_read << " bytes" << std::endl;
+	//std::cerr << "Data read from Scratch " << bytes_read << " bytes" << std::endl;
 	int bytes_left = bytes_read;
 	const char * buffer_pos = buffer;
 	while (bytes_left > 4) {
@@ -181,7 +183,6 @@ bool ScratchConnection::SendScratchFormattedMessage(const char * fmt, ...) {
 		// If that worked, send the string
 		if (n > -1 && n < size) {
 			SendRaw(n, p);
-			printf("Sending so Scratch: '%s' (%d bytes)\n", p, n);
 			return true;
 		}
 

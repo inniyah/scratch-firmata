@@ -223,6 +223,7 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 			device.getCurrentPinValue(pin) ? _("High") : _("Low"));
 		button->SetValue(device.getCurrentPinValue(pin));
 		add_item_to_grid(pin, 2, button);
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d.cfg\" OUTPUT", pin);
 		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d\" %d", pin, device.getCurrentPinValue(pin));
 	} else if (mode == PinInfo::MODE_INPUT) {
 		wxStaticText *text = new wxStaticText(scroll, 5000+pin,
@@ -231,7 +232,8 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 		text->SetMinSize(size);
 		text->SetWindowStyle(wxALIGN_CENTRE);
 		add_item_to_grid(pin, 2, text);
-
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d.cfg\" INPUT", pin);
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d\" %d", pin, device.getCurrentPinValue(pin));
 	} else if (mode == PinInfo::MODE_ANALOG) {
 		wxString val;
 		val.Printf(_("%d"), device.getCurrentPinValue(pin));
@@ -240,6 +242,8 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 		text->SetMinSize(size);
 		text->SetWindowStyle(wxALIGN_CENTRE);
 		add_item_to_grid(pin, 2, text);
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d.cfg\" ANALOG", pin);
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d\" %d", pin, device.getCurrentPinValue(pin));
 	} else if (mode == PinInfo::MODE_PWM || mode == PinInfo::MODE_SERVO) {
 		int maxval = (mode == PinInfo::MODE_PWM) ? 255 : 180;
 		wxSlider *slider = new wxSlider(scroll, 6000+pin,
@@ -247,6 +251,8 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 		wxSize size = wxSize(128, -1);
 		slider->SetMinSize(size);
 		add_item_to_grid(pin, 2, slider);
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d.cfg\" SERVO", pin);
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d\" %d", pin, device.getCurrentPinValue(pin));
 	}
 	new_size();
 }
@@ -357,6 +363,7 @@ void ScratchFirmataFrame::PinValueChanged(unsigned int pin_num) { // IFirmataLis
 			);
 			text->SetLabel(val);
 		}
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d\" %d", pin_num, device.getCurrentPinValue(pin_num));
 	}
 
 	else if (device.getCurrentPinMode(pin_num) == PinInfo::MODE_INPUT) {
@@ -365,6 +372,7 @@ void ScratchFirmataFrame::PinValueChanged(unsigned int pin_num) { // IFirmataLis
 		if (text) {
 			text->SetLabel(device.getCurrentPinValue(pin_num) ? _("High") : _("Low"));
 		}
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d\" %d", pin_num, device.getCurrentPinValue(pin_num));
 	}
 }
 

@@ -174,6 +174,11 @@ void ScratchFirmataFrame::add_pin(int pin)
 	OnModeChange(cmd);
 }
 
+uint32_t ScratchFirmataFrame::set_pin_value(int pin, uint32_t value)
+{
+	return device.getCurrentPinValue(pin);
+}
+
 void ScratchFirmataFrame::UpdateStatus(void)
 {
 	wxString status;
@@ -218,6 +223,7 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 			device.getCurrentPinValue(pin) ? _("High") : _("Low"));
 		button->SetValue(device.getCurrentPinValue(pin));
 		add_item_to_grid(pin, 2, button);
+		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d\" %d", pin, device.getCurrentPinValue(pin));
 	} else if (mode == PinInfo::MODE_INPUT) {
 		wxStaticText *text = new wxStaticText(scroll, 5000+pin,
 			device.getCurrentPinValue(pin) ? _("High") : _("Low"));
@@ -303,8 +309,6 @@ void ScratchFirmataFrame::OnSliderDrag(wxScrollEvent &event)
 	}
 	UpdateStatus();
 }
-
-
 
 void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 {
@@ -448,7 +452,11 @@ void ScratchFirmataFrame::ReceiveScratchMessage(unsigned int num_params, const c
 
 				if (strncasecmp(param[1], "pin", 3) == 0 && param_size[1] > 3) {
 					int pin = str_to_int(param[1] + 3, param_size[1] - 3);
-					std::cerr << "Setting pin " << pin << " to " << value << std::endl;
+					if (device.isPinOutput(pin)) {
+						std::cerr << "Setting pin " << pin << " to " << value << std::endl;
+					} else {
+						std::cerr << "Unable to set pin " << pin << " to " << value << std::endl;
+					}
 				}
 			} catch (ScratchFirmataException & caught) {
 				std::cerr << "Got exception: " << caught.what() << std::endl;

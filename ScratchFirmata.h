@@ -60,6 +60,7 @@ private:
 	void new_size(void);
 	void add_item_to_grid(int row, int col, wxWindow *item);
 	void add_pin(int pin);
+	uint32_t set_pin_value(int pin, uint32_t value);
 	void UpdateStatus(void);
 	void OnAbout(wxCommandEvent &event);
 	void OnQuit(wxCommandEvent &event);

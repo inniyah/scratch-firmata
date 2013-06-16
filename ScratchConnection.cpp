@@ -2,9 +2,8 @@
 
 #include <cstdlib>
 #include <iostream>
-
-#include <cstdlib>
 #include <cstring>
+#include <cstdarg>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -63,8 +62,7 @@ void ScratchConnection::Disconnect() {
 void ScratchConnection::SendRaw(size_t size, const char * data) {
 	if (sockfd < 0) if (!Connect()) return;
 
-	char header[5] = {
-		'c',
+	char header[4] = {
 		(char)((size >> 24) & 0xFF),
 		(char)((size >> 16) & 0xFF),
 		(char)((size >>  8) & 0xFF),
@@ -166,5 +164,37 @@ void ScratchConnection::ProcessScratchMessage(IScratchListener & listener, size_
 	listener.ReceiveScratchMessage(param_num, param, param_size);
 }
 
+bool ScratchConnection::SendScratchFormattedMessage(const char * fmt, ...) {
+	int n;
+	int size = 100; // Initial guess: 100 bytes
+	char *p, *np;
+	va_list ap;
 
+	if ((p = (char*)malloc(size)) == NULL) return false;
 
+	while (true) {
+		// Try to print in the allocated space
+		va_start(ap, fmt);
+		n = vsnprintf(p, size, fmt, ap);
+		va_end(ap);
+
+		// If that worked, send the string
+		if (n > -1 && n < size) {
+			SendRaw(n, p);
+			printf("Sending so Scratch: '%s' (%d bytes)\n", p, n);
+			return true;
+		}
+
+		// Else try again with more space
+
+		if (n > -1) size = n+1; // glibc 2.1: precisely what is needed
+		else size *= 2; // glibc 2.0: twice the old size
+
+		if ((np = (char*)realloc (p, size)) == NULL) {
+			free(p);
+			return false;
+		} else {
+			p = np;
+		}
+	}
+}

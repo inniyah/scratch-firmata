@@ -29,6 +29,12 @@ public:
 		ReceiveRaw(listener);
 	}
 
+	inline void SendScratchMessage(size_t size, const char * data) {
+		SendRaw(size, data);
+	}
+
+	bool SendScratchFormattedMessage(const char * fmt, ...);
+
 private:
 	void SendRaw(size_t size, const char * data);
 	void ReceiveRaw(IScratchListener & listener);

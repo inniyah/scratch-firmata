@@ -103,6 +103,13 @@ public:
 		return (pin_info[pin_num].mode);
 	}
 
+	bool isPinOutput(unsigned int pin_num) {
+		if (pin_info[pin_num].mode == PinInfo::MODE_OUTPUT) return true;
+		if (pin_info[pin_num].mode == PinInfo::MODE_PWM) return true;
+		if (pin_info[pin_num].mode == PinInfo::MODE_SERVO) return true;
+		return false;
+	}
+
 	inline uint32_t getCurrentPinValue(unsigned int pin_num) const {
 		return (pin_info[pin_num].value);
 	}

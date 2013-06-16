@@ -18,7 +18,7 @@ public:
 	Serial();
 	~Serial();
 	wxArrayString port_list();
-	int Open(const wxString& name);
+	int Open(const char * p_name);
 	wxString error_message();
 	int Set_baud(int baud);
 	int Set_baud(const wxString& baud_str);
@@ -30,7 +30,7 @@ public:
 	void Output_flush();
 	void Close(void);
 	int Is_open(void);
-	wxString get_name(void);
+	const char * get_name(void) const;
 private:
 	int port_is_open;
 	wxString port_name;

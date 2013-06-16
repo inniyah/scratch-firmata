@@ -25,6 +25,50 @@ bool Device::ReadFromDevice(IFirmataListener & listener)
 	return true;
 }
 
+bool Device::open(const char * port_name)
+{
+	port.Open(port_name);
+	port.Set_baud(57600);
+	if (isOpen()) {
+		printf("port is open\n");
+		reset();
+		parse_count = 0;
+		parse_command_len = 0;
+		/*
+		The startup strategy is to open the port and immediately
+		send the REPORT_FIRMWARE message.  When we receive the
+		firmware name reply, then we know the board is ready to
+		communicate.
+
+		For boards like Arduino which use DTR to reset, they may
+		reboot the moment the port opens.  They will not hear this
+		REPORT_FIRMWARE message, but when they finish booting up
+		they will send the firmware message.
+
+		For boards that do not reboot when the port opens, they
+		will hear this REPORT_FIRMWARE request and send the
+		response.  If this REPORT_FIRMWARE request isn't sent,
+		these boards will not automatically send this info.
+
+		Arduino boards that reboot on DTR will act like a board
+		that does not reboot, if DTR is not raised when the
+		port opens.  This program attempts to avoid raising
+		DTR on windows.  (is this possible on Linux and Mac OS-X?)
+
+		Either way, when we hear the REPORT_FIRMWARE reply, we
+		know the board is alive and ready to communicate.
+		*/
+		uint8_t buf[3];
+		buf[0] = START_SYSEX;
+		buf[1] = REPORT_FIRMWARE; // read firmata name & version
+		buf[2] = END_SYSEX;
+		write(buf, 3);
+		return true;
+	}
+
+	return false;
+}
+
 void Device::Parse(const uint8_t *buf, int len, IFirmataListener & listener)
 {
 	const uint8_t *p, *end;

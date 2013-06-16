@@ -178,7 +178,7 @@ void ScratchFirmataFrame::UpdateStatus(void)
 {
 	wxString status;
 	if (device.isOpen()) {
-		status.Printf(device.port.get_name() + _("    ") +
+		status.Printf(wxString(device.getPortName(), wxConvUTF8) + _("    ") +
 			wxString(device.getFirmataName(), wxConvUTF8) + _("    Tx:%u Rx:%u"),
 			device.getTxCount(), device.getRxCount());
 	} else {
@@ -311,48 +311,13 @@ void ScratchFirmataFrame::OnPort(wxCommandEvent &event)
 	int id = event.GetId();
 	wxString name = port_menu->FindItem(id)->GetLabel();
 
-	device.port.Close();
+	device.close();
 	init_data();
 	printf("OnPort, id = %d, name = %s\n", id, (const char *)name.c_str());
 	if (id == 9000) return;
 
-	device.port.Open(name);
-	device.port.Set_baud(57600);
-	if (device.isOpen()) {
-		printf("port is open\n");
-		device.reset();
-		parse_count = 0;
-		parse_command_len = 0;
-		UpdateStatus();
-		/*
-		The startup strategy is to open the port and immediately
-		send the REPORT_FIRMWARE message.  When we receive the
-		firmware name reply, then we know the board is ready to
-		communicate.
-
-		For boards like Arduino which use DTR to reset, they may
-		reboot the moment the port opens.  They will not hear this
-		REPORT_FIRMWARE message, but when they finish booting up
-		they will send the firmware message.
-
-		For boards that do not reboot when the port opens, they
-		will hear this REPORT_FIRMWARE request and send the
-		response.  If this REPORT_FIRMWARE request isn't sent,
-		these boards will not automatically send this info.
-
-		Arduino boards that reboot on DTR will act like a board
-		that does not reboot, if DTR is not raised when the
-		port opens.  This program attempts to avoid raising
-		DTR on windows.  (is this possible on Linux and Mac OS-X?)
-
-		Either way, when we hear the REPORT_FIRMWARE reply, we
-		know the board is alive and ready to communicate.
-		*/
-		uint8_t buf[3];
-		buf[0] = START_SYSEX;
-		buf[1] = REPORT_FIRMWARE; // read firmata name & version
-		buf[2] = END_SYSEX;
-		device.write(buf, 3);
+	UpdateStatus();
+	if (device.open(name.mb_str())) {
 		wxWakeUpIdle();
 	} else {
 		printf("error opening port\n");
@@ -523,7 +488,7 @@ void ScratchFirmataMenu::OnShowPortList(wxMenuEvent &event)
 	for (int i=0; i < num; i++) {
 		//printf("%d: port %s\n", i, (const char *)list[i]);
 		item = menu->AppendRadioItem(9001 + i, list[i]);
-		if (device.isOpen() && device.port.get_name().IsSameAs(list[i])) {
+		if (device.isOpen() && wxString(device.getPortName(), wxConvUTF8).IsSameAs(list[i])) {
 			menu->Check(9001 + i, true);
 			any = 1;
 		}

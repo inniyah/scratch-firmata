@@ -70,6 +70,13 @@ public:
 		firmata_name = "";
 	}
 
+	bool open(const char * port_name);
+
+	inline void close() {
+		port.Close();
+		reset();
+	}
+
 	inline bool isOpen() {
 		return port.Is_open();
 	}
@@ -78,6 +85,10 @@ public:
 		int w = port.Write(ptr, len);
 		adjustTxCount(len);
 		return w;
+	}
+
+	inline const char * getPortName() const {
+		return port.get_name();
 	}
 
 	inline const char * getFirmataName() const {

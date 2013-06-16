@@ -1,4 +1,4 @@
-/*  Serial port object for use with wxWidgets
+/*  Serial port management object
  *  Copyright 2010, Paul Stoffregen (paul@pjrc.com)
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -74,8 +74,9 @@ Serial::~Serial()
 
 
 // Open a port, by name.  Return 0 on success, non-zero for error
-int Serial::Open(const wxString& name)
+int Serial::Open(const char * p_name)
 {
+	wxString name(p_name, wxConvUTF8);
 	Close();
 #if defined(LINUX)
 	struct serial_struct kernel_serial_settings;
@@ -255,10 +256,10 @@ int Serial::Open(const wxString& name)
 	return 0;
 }
 
-wxString Serial::get_name(void)
+const char *  Serial::get_name(void) const
 {
-	if (!port_is_open) return _("");
-	return port_name;
+	if (!port_is_open) return "";
+	return port_name.mb_str();
 }
 
 
@@ -719,7 +720,7 @@ static void macos_ports(io_iterator_t  * PortIterator, wxArrayString& list)
 	char s[MAXPATHLEN];
 
 	while ((modemService = IOIteratorNext(*PortIterator))) {
-		nameCFstring = IORegistryEntryCreateCFProperty(modemService, 
+		nameCFstring = IORegistryEntryCreateCFProperty(modemService,
 		   CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
 		if (nameCFstring) {
 			if (CFStringGetCString((const __CFString *)nameCFstring,

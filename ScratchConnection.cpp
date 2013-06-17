@@ -62,7 +62,9 @@ void ScratchConnection::Disconnect() {
 void ScratchConnection::SendRaw(size_t size, const char * data) {
 	if (sockfd < 0) if (!Connect()) return;
 
-	printf("Sending so Scratch: '%s' (%d bytes)\n", data, size);
+	std::cerr << "Sending message of length " << size << ": ";
+	std::cerr.write(data, size);
+	std::cerr << std::endl;
 
 	char header[4] = {
 		(char)((size >> 24) & 0xFF),

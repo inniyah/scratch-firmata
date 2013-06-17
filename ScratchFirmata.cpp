@@ -440,11 +440,11 @@ static int str_to_int(const char str[], size_t length) {
 
 // IScratchListener
 void ScratchFirmataFrame::ReceiveScratchMessage(unsigned int num_params, const char * param[], unsigned int param_size[]) {
-	for (unsigned int i = 0; i < num_params; i++) {
-		std::cerr << "  Parameter " << i << ": ";
-		std::cerr.write(param[i], param_size[i]);
-		std::cerr << std::endl;
-	}
+	//for (unsigned int i = 0; i < num_params; i++) {
+	//	std::cerr << "  Parameter " << i << ": ";
+	//	std::cerr.write(param[i], param_size[i]);
+	//	std::cerr << std::endl;
+	//}
 
 	if (strncasecmp(param[0], "sensor-update", param_size[0]) == 0) {
 		int value = 0;

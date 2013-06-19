@@ -55,6 +55,9 @@ private:
 	virtual void PinFound(unsigned int pin_num);
 	virtual void FirmataStatusChanged();
 
+	void SendPinConfigurationToScratch(int pin);
+	void SendPinValueToScratch(int pin);
+
 private:
 	void init_data(void);
 	void new_size(void);

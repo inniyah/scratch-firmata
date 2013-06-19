@@ -50,7 +50,9 @@ class PerformanceTimer
 		void stop();
 
 		/** Checks to see if the timer is stopped */
-		bool isStopped() const;
+		inline bool isStopped() const {
+			return _isStopped;
+		}
 
 		/** Returns the elapsed time since the timer was started, or the time interval
 		 between calls to start() and stop().

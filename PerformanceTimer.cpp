@@ -74,12 +74,6 @@ void PerformanceTimer::stop()
 }
 
 
-bool PerformanceTimer::isStopped() const
-{
-	return _isStopped;
-}
-
-
 double PerformanceTimer::getElapsedMicroseconds()
 {
 	double microSecond = 0;

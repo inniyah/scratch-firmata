@@ -61,6 +61,7 @@ PinXtraInfo pin_xinfo[Device::MAX_PINS];
 wxMenu *port_menu;
 
 ScratchConnection scratch_conn;
+bool scratch_connected = false;
 
 class ScratchFirmataException : public std::exception {
 public:
@@ -220,6 +221,9 @@ void ScratchFirmataFrame::UpdateStatus(void)
 
 void ScratchFirmataFrame::SendPinConfigurationToScratch(int pin)
 {
+	if (!scratch_connected)
+		return;
+
 	int mode = device.getCurrentPinMode(pin);
 	if (mode == PinInfo::MODE_OUTPUT) {
 		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d.cfg\" OUTPUT", pin);
@@ -239,6 +243,9 @@ void ScratchFirmataFrame::SendPinConfigurationToScratch(int pin)
 
 void ScratchFirmataFrame::SendPinValueToScratch(int pin)
 {
+	if (!scratch_connected)
+		return;
+
 	int value = device.getCurrentPinValue(pin);
 	if (pin_xinfo[pin].checkIfMustSend(value)) {
 		scratch_conn.SendScratchFormattedMessage("sensor-update \"pin%d\" %d", pin, value);
@@ -249,7 +256,7 @@ void ScratchFirmataFrame::OnModeChange(wxCommandEvent &event)
 {
 	int id = event.GetId();
 	int pin = id - 8000;
-	if (pin < 0 || pin > 127) return;
+	if (pin < 0 || pin >= Device::MAX_PINS) return;
 	wxChoice *ch = (wxChoice *)FindWindowById(id, scroll);
 	wxString sel = ch->GetStringSelection();
 	printf("Mode Change, id = %d, pin=%d, ", id, pin);
@@ -387,6 +394,19 @@ void ScratchFirmataFrame::OnIdle(wxIdleEvent &event)
 
 	scratch_conn.ReceiveScratchMessages(*this);
 	request_more = device.ReadFromDevice(*this);
+
+	if (scratch_conn.isConnected()) {
+		 if (!scratch_connected) {
+			scratch_connected = true;
+			for (int pin=0; pin < Device::MAX_PINS; pin++) {
+				if (device.isPinActive(pin)) {
+					SendPinConfigurationToScratch(pin);
+				}
+			}
+		}
+	} else {
+		scratch_connected = false;
+	}
 
 	if (request_more)
 		event.RequestMore(true);

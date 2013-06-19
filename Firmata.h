@@ -30,7 +30,7 @@ struct PinInfo {
 	uint32_t value;
 
 	void reset() {
-		mode = 255;
+		mode = MODE_NONE;
 		analog_channel = 127;
 		supported_modes = 0;
 		value = 0;
@@ -44,6 +44,7 @@ struct PinInfo {
 		MODE_SERVO  = 0x04,
 		MODE_SHIFT  = 0x05,
 		MODE_I2C    = 0x06,
+		MODE_NONE   = 0xFF,
 	};
 };
 
@@ -93,6 +94,10 @@ public:
 
 	inline const char * getFirmataName() const {
 		return firmata_name.c_str();
+	}
+
+	inline bool isPinActive(unsigned int pin_num) const {
+		return (pin_info[pin_num].supported_modes != 0);
 	}
 
 	inline bool doesPinSupportMode(unsigned int pin_num, int mode) const {

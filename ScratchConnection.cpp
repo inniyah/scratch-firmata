@@ -59,8 +59,8 @@ void ScratchConnection::Disconnect() {
 	std::cerr << "Lost connection with Scratch" << std::endl;
 }
 
-void ScratchConnection::SendRaw(size_t size, const char * data) {
-	if (sockfd < 0) if (!Connect()) return;
+bool ScratchConnection::SendRaw(size_t size, const char * data) {
+	if (sockfd < 0) if (!Connect()) return false;
 
 	std::cerr << "Sending message of length " << size << ": ";
 	std::cerr.write(data, size);
@@ -75,18 +75,19 @@ void ScratchConnection::SendRaw(size_t size, const char * data) {
 	if (::send(sockfd, header, sizeof(header), 0) < 0) {
 		std::cerr << "Error " << errno << " while sending the header: "<< strerror(errno) << std::endl;
 		Disconnect();
-		return;
+		return false;
 	}
 	//std::cerr << "Message of size " << size << " to be sent" << std::endl;
 	if (::send(sockfd, data, size, 0) < 0) {
 		std::cerr << "Error " << errno << " while sending the data: "<< strerror(errno) << std::endl;
 		Disconnect();
-		return;
+		return false;
 	}
+	return true;
 }
 
-void ScratchConnection::ReceiveRaw(IScratchListener & listener) {
-	if (sockfd < 0) if (!Connect()) return;
+bool ScratchConnection::ReceiveRaw(IScratchListener & listener) {
+	if (sockfd < 0) if (!Connect()) return false;
 
 	char buffer[BufferSize+1]; buffer[BufferSize] = '\0';
 	int bytes_read = ::recv(sockfd, buffer, sizeof(buffer), MSG_DONTWAIT);
@@ -94,13 +95,13 @@ void ScratchConnection::ReceiveRaw(IScratchListener & listener) {
 		if (errno != EAGAIN && errno != EWOULDBLOCK) { // Error
 			std::cerr << "Error " << errno << " while receiving message from Scratch: "<< strerror(errno) << std::endl;
 			Disconnect();
-			return;
+			return false;
 		} else { // No data available at the moment
-			return;
+			return true;
 		}
 	} else if (bytes_read == 0) { // EOF
 		Disconnect();
-		return;
+		return false;
 	}
 
 	//std::cerr << "Data read from Scratch " << bytes_read << " bytes" << std::endl;
@@ -113,10 +114,12 @@ void ScratchConnection::ReceiveRaw(IScratchListener & listener) {
 			((size_t)(buffer_pos[2]) << 8) +
 			((size_t)(buffer_pos[3]) << 0);
 		buffer_pos += 4; bytes_left -= 4;
-		if (size > (size_t)bytes_left) return;
+		if (size > (size_t)bytes_left) return false;
 		ProcessScratchMessage(listener, (size_t)size, buffer_pos);
 		buffer_pos += size; bytes_left -= size;
 	}
+
+	return true;
 }
 
 void ScratchConnection::ProcessScratchMessage(IScratchListener & listener, size_t size, const char * data) {
@@ -184,8 +187,7 @@ bool ScratchConnection::SendScratchFormattedMessage(const char * fmt, ...) {
 
 		// If that worked, send the string
 		if (n > -1 && n < size) {
-			SendRaw(n, p);
-			return true;
+			return SendRaw(n, p);
 		}
 
 		// Else try again with more space

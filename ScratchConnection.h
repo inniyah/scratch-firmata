@@ -25,6 +25,10 @@ public:
 	bool Connect();
 	void Disconnect();
 
+	inline bool isConnected() const { // true if connected
+		return (sockfd >= 0);
+	}
+
 	inline void ReceiveScratchMessages(IScratchListener & listener) {
 		ReceiveRaw(listener);
 	}
@@ -36,8 +40,8 @@ public:
 	bool SendScratchFormattedMessage(const char * fmt, ...);
 
 private:
-	void SendRaw(size_t size, const char * data);
-	void ReceiveRaw(IScratchListener & listener);
+	bool SendRaw(size_t size, const char * data);
+	bool ReceiveRaw(IScratchListener & listener);
 	void ProcessScratchMessage(IScratchListener & listener, size_t size, const char * data);
 
 private:
